@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"bytes"
-	"database/sql"
 	"fmt"
 	"html/template"
 	"io"
@@ -102,6 +101,30 @@ func (h *Handler) Dashboard(c echo.Context) error {
 	}
 
 	return c.Render(http.StatusOK, "layout.html", layoutData)
+}
+
+func (h *Handler) Tracker(c echo.Context) error {
+	layoutData := map[string]interface{}{
+		"Title":      "Tech Layoff Tracker - Browse Layoffs",
+		"ActivePage": "tracker",
+		"Content":    template.HTML("<p>Tracker page coming soon.</p>"),
+	}
+
+	return c.Render(http.StatusOK, "layout.html", layoutData)
+}
+
+func (h *Handler) LayoffDetail(c echo.Context) error {
+	layoutData := map[string]interface{}{
+		"Title":      "Tech Layoff Tracker - Layoff Details",
+		"ActivePage": "",
+		"Content":    template.HTML("<p>Layoff detail page coming soon.</p>"),
+	}
+
+	return c.Render(http.StatusOK, "layout.html", layoutData)
+}
+
+func (h *Handler) CreateLayoff(c echo.Context) error {
+	return c.String(http.StatusOK, "Create layoff coming soon.")
 }
 
 // Comment handlers
