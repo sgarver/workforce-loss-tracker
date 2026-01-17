@@ -106,6 +106,7 @@ func main() {
 	e.GET("/tracker", handler.Tracker)
 	e.GET("/layoffs/:id/comments", handler.GetComments)
 	e.POST("/layoffs/:id/comments", handler.CreateComment)
+	e.GET("/layoffs/new", handler.NewLayoff)
 	e.GET("/layoffs/:id", handler.LayoffDetail)
 	e.POST("/layoffs", handler.CreateLayoff)
 	e.GET("/industries", handler.Industries)
