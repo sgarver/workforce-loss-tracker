@@ -154,10 +154,10 @@ func main() {
 	e.GET("/", handler.Dashboard)
 	e.GET("/dashboard", handler.Dashboard)
 	e.GET("/tracker", handler.Tracker)
-	e.GET("/layoffs/:id", handler.LayoffDetail)
-	e.POST("/layoffs", handler.CreateLayoff)
 	e.GET("/layoffs/:id/comments", handler.GetComments)
 	e.POST("/layoffs/:id/comments", handler.CreateComment)
+	e.GET("/layoffs/:id", handler.LayoffDetail)
+	e.POST("/layoffs", handler.CreateLayoff)
 	e.GET("/industries", handler.Industries)
 	e.GET("/faq", handler.FAQ)
 	e.GET("/export/csv", handler.ExportCSV)
@@ -176,6 +176,9 @@ func main() {
 		log.Println("Starting automated nightly import scheduler...")
 		ticker := time.NewTicker(24 * time.Hour)
 		defer ticker.Stop()
+
+		// Perform initial import
+		performNightlyImport(freeDataService, notificationService)
 
 		for range ticker.C {
 			performNightlyImport(freeDataService, notificationService)
