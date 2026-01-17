@@ -22,10 +22,11 @@ Whenever changes are made to Go files in this project, follow this process:
 
 4. **Manual Verification**:
    - **MANDATORY**: Prompt the user to perform manual verification of the changes.
-   - **DO NOT PROCEED WITHOUT EXPLICIT USER APPROVAL**. Wait for confirmation (e.g., "commit" or "approved") before advancing to step 5.
+   - **DO NOT PROCEED WITHOUT EXPLICIT USER APPROVAL**. Always wait for the user to explicitly say "commit" (or similar confirmation like "approved") before advancing to step 5. Do not infer approval from phrases like "please proceed" or "looks good"—require direct confirmation.
 
 5. **Commit to Git**:
-   - **ONLY AFTER EXPLICIT USER APPROVAL** (e.g., user says "commit"): Commit the changes: `git add .` and `git commit -m "Description of changes"`
+   - **ONLY AFTER USER SAYS "COMMIT"**: Do not commit until the user explicitly says "commit" (or equivalent). This prevents premature commits.
+   - Commit the changes: `git add .` and `git commit -m "Description of changes"`
    - Update the completed task in `todo.md` and update the timestamp.
    - Ask the user about the next task.
 
@@ -37,7 +38,7 @@ After making changes, include this checklist in responses to ensure protocol adh
 - [ ] **Restart Site**: Server stopped, restarted, `curl -s http://127.0.0.1:8080/ping` returns "pong".
 - [ ] **Curl Verification**: Specific curls to verify changes (e.g., endpoints, UI elements).
 - [ ] **Manual Verification Prompt**: Asked user to verify before committing.
-- [ ] **User Approval**: Confirmed explicit approval (e.g., "commit") before commit.
+- [ ] **User Approval**: Confirmed user explicitly said "commit" (or equivalent) before commit.
 - [ ] **Commit Done**: Changes committed with descriptive message.
 - [ ] **Todo Updated**: `todo.md` updated if task completed.
 
