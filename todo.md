@@ -14,6 +14,7 @@ Other site changes
 - [x] fix dashboard HTML escaping/rendering issue
 - [x] skip initial data import on startup
 - [x] set user-submitted layoffs to "pending" status for review
+- [x] create AGENTS.md file with change instructions
 - [ ] change colors and font style to more urban and serious looking
 - [ ] add banner image
 
@@ -34,3 +35,5 @@ Getting Production Ready
 - [ ] optimize for SEO
 - [ ] plan ways to monitize
 - [ ] implement adds or affilate links
+
+Last updated: 2026-01-17
