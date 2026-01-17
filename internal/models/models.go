@@ -97,6 +97,16 @@ type PaginatedResult struct {
 	TotalPages int         `json:"total_pages"`
 }
 
+type User struct {
+	ID         int       `json:"id" db:"id"`
+	Provider   string    `json:"provider" db:"provider"`
+	ProviderID string    `json:"provider_id" db:"provider_id"`
+	Email      string    `json:"email" db:"email"`
+	Name       string    `json:"name" db:"name"`
+	AvatarURL  string    `json:"avatar_url" db:"avatar_url"`
+	CreatedAt  time.Time `json:"created_at" db:"created_at"`
+}
+
 type Stats struct {
 	TotalLayoffs           int `json:"total_layoffs"`
 	TotalCompanies         int `json:"total_companies"`

@@ -26,12 +26,14 @@ func (t *TemplateRenderer) Render(w io.Writer, name string, data interface{}, c 
 
 type Handler struct {
 	layoffService *services.LayoffService
+	userService   *services.UserService
 	templates     *template.Template
 }
 
-func NewHandler(layoffService *services.LayoffService, templates *template.Template) *Handler {
+func NewHandler(layoffService *services.LayoffService, userService *services.UserService, templates *template.Template) *Handler {
 	return &Handler{
 		layoffService: layoffService,
+		userService:   userService,
 		templates:     templates,
 	}
 }
