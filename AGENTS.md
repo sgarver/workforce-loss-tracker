@@ -26,6 +26,7 @@ Whenever changes are made to Go files in this project, follow this process:
 
 5. **Commit to Git**:
    - **ONLY AFTER USER APPROVAL**: Commit the changes: `git add .` and `git commit -m "Description of changes"`
+   - Update the completed task in `todo.md` and update the timestamp.
    - Ask the user about the next task.
 
 ## Task Management
