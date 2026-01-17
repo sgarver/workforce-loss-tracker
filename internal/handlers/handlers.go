@@ -164,6 +164,31 @@ func (h *Handler) LayoffDetail(c echo.Context) error {
 	return c.Render(http.StatusOK, "layoff_detail", data)
 }
 
+func (h *Handler) NewLayoff(c echo.Context) error {
+	industries, err := h.layoffService.GetIndustries()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	// Render new layoff form
+	var contentBuf bytes.Buffer
+	data := map[string]interface{}{
+		"Industries": industries,
+	}
+	err = h.templates.ExecuteTemplate(&contentBuf, "new_layoff.html", data)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	layoutData := map[string]interface{}{
+		"Title":      "Tech Layoff Tracker - Report Layoff",
+		"ActivePage": "",
+		"Content":    template.HTML(contentBuf.String()),
+	}
+
+	return c.Render(http.StatusOK, "layout.html", layoutData)
+}
+
 func (h *Handler) CreateLayoff(c echo.Context) error {
 	return c.String(http.StatusOK, "Create layoff coming soon.")
 }
