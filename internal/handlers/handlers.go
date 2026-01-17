@@ -104,138 +104,47 @@ func (h *Handler) Dashboard(c echo.Context) error {
 	return c.Render(http.StatusOK, "layout.html", layoutData)
 }
 
-func (h *Handler) Tracker(c echo.Context) error {
-	// Parse query parameters
-	params := h.ParseFilterParams(c)
-
-	layoffs, err := h.layoffService.GetLayoffs(params)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-	}
-
-	industries, err := h.layoffService.GetIndustries()
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-	}
-
-	// Render tracker content
-	var contentBuf bytes.Buffer
-	data := map[string]interface{}{
-		"Layoffs":    layoffs.Data,
-		"Pagination": layoffs,
-		"Industries": industries,
-		"Filters":    params,
-	}
-	err = h.templates.ExecuteTemplate(&contentBuf, "tracker.html", data)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-	}
-
-	layoutData := map[string]interface{}{
-		"Title":      "Tech Layoff Tracker - Browse Layoffs",
-		"ActivePage": "tracker",
-		"Content":    template.HTML(contentBuf.String()),
-	}
-
-	return c.Render(http.StatusOK, "layout.html", layoutData)
-}
-
-func (h *Handler) LayoffDetail(c echo.Context) error {
-	id, err := strconv.Atoi(c.Param("id"))
+// Comment handlers
+func (h *Handler) GetComments(c echo.Context) error {
+	layoffID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid layoff ID"})
 	}
 
-	layoff, err := h.layoffService.GetLayoff(id)
+	comments, err := h.layoffService.GetComments(layoffID)
 	if err != nil {
-		if err.Error() == "layoff not found" {
-			return c.JSON(http.StatusNotFound, map[string]string{"error": "Layoff not found"})
-		}
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	data := map[string]interface{}{
-		"Layoff": layoff,
-		"Page":   "layoff_detail",
-	}
-
-	return c.Render(http.StatusOK, "layoff_detail", data)
+	return c.JSON(http.StatusOK, comments)
 }
 
-func (h *Handler) NewLayoff(c echo.Context) error {
-	industries, err := h.layoffService.GetIndustries()
+func (h *Handler) CreateComment(c echo.Context) error {
+	layoffID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid layoff ID"})
+	}
+
+	authorName := c.FormValue("author_name")
+	content := c.FormValue("content")
+	authorEmail := c.FormValue("author_email")
+
+	if authorName == "" || content == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Name and content are required"})
+	}
+
+	comment := &models.Comment{
+		LayoffID:    layoffID,
+		AuthorName:  authorName,
+		AuthorEmail: authorEmail,
+		Content:     content,
+	}
+
+	if err := h.layoffService.CreateComment(comment); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	var contentBuf bytes.Buffer
-	data := map[string]interface{}{
-		"Industries": industries,
-	}
-	err = h.templates.ExecuteTemplate(&contentBuf, "new_layoff.html", data)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-	}
-
-	layoutData := map[string]interface{}{
-		"Title":      "Tech Layoff Tracker - Report Layoff",
-		"ActivePage": "report",
-		"Content":    template.HTML(contentBuf.String()),
-	}
-
-	return c.Render(http.StatusOK, "layout.html", layoutData)
-}
-func (h *Handler) CreateLayoff(c echo.Context) error {
-	// Custom binding for form data
-	companyName := c.FormValue("company_name")
-	employeesAffectedStr := c.FormValue("employees_affected")
-	layoffDateStr := c.FormValue("layoff_date")
-	sourceURL := c.FormValue("source_url")
-	notes := c.FormValue("notes")
-
-	// Validate required fields
-	if companyName == "" || employeesAffectedStr == "" || layoffDateStr == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Missing required fields"})
-	}
-
-	// Parse employees affected
-	employeesAffected, err := strconv.Atoi(employeesAffectedStr)
-	if err != nil || employeesAffected <= 0 {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid employees affected"})
-	}
-
-	// Parse layoff date
-	layoffDate, err := time.Parse("2006-01-02", layoffDateStr)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid layoff date"})
-	}
-
-	// Find or create company
-	companyID, err := h.layoffService.GetOrCreateCompany(companyName)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to process company"})
-	}
-
-	// Create layoff
-	layoff := &models.Layoff{
-		CompanyID:         companyID,
-		EmployeesAffected: employeesAffected,
-		LayoffDate:        layoffDate,
-		SourceURL:         sql.NullString{String: sourceURL, Valid: sourceURL != ""},
-		Notes:             notes,
-		Status:            "pending",
-	}
-
-	if err := h.layoffService.CreateLayoff(layoff); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-	}
-
-	// Redirect back to tracker or return HTMX response
-	if isHTMXRequest(c) {
-		c.Response().Header().Set("HX-Redirect", "/tracker")
-		return c.NoContent(http.StatusOK)
-	}
-	return c.Redirect(http.StatusSeeOther, "/tracker")
+	return c.JSON(http.StatusCreated, comment)
 }
 
 func (h *Handler) Industries(c echo.Context) error {

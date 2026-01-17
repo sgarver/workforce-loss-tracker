@@ -1,9 +1,164 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Page Header -->
     <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{.Layoff.Company.Name}} Layoffs</h1>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">Detailed information about this layoff event</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{.Layoff.Company.Name}} Layoff</h1>
+        <p class="mt-2 text-gray-600 dark:text-gray-400">{{.Layoff.EmployeesAffected}} employees affected on {{.Layoff.LayoffDate.Format "January 2, 2006"}}</p>
     </div>
+
+    <!-- Layoff Details -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 mb-8">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Layoff Details</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Company</h3>
+                <p class="text-lg text-gray-900 dark:text-white">{{.Layoff.Company.Name}}</p>
+                {{if .Layoff.Company.Website}}
+                <a href="{{.Layoff.Company.Website}}" target="_blank" class="text-primary-600 hover:text-primary-700 text-sm">Visit Website</a>
+                {{end}}
+            </div>
+            <div>
+                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Industry</h3>
+                <p class="text-lg text-gray-900 dark:text-white">{{if .Layoff.Company.Industry}}{{.Layoff.Company.Industry.Name}}{{else}}Unknown{{end}}</p>
+            </div>
+            <div>
+                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Employees Affected</h3>
+                <p class="text-lg text-gray-900 dark:text-white">{{.Layoff.EmployeesAffected}}</p>
+            </div>
+            <div>
+                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Layoff Date</h3>
+                <p class="text-lg text-gray-900 dark:text-white">{{.Layoff.LayoffDate.Format "January 2, 2006"}}</p>
+            </div>
+        </div>
+        {{if .Layoff.SourceURL.Valid}}
+        <div class="mt-6">
+            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Source</h3>
+            <a href="{{.Layoff.SourceURL.String}}" target="_blank" class="text-primary-600 hover:text-primary-700 break-all">{{.Layoff.SourceURL.String}}</a>
+        </div>
+        {{end}}
+        {{if .Layoff.Notes}}
+        <div class="mt-6">
+            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Additional Notes</h3>
+            <p class="text-gray-700 dark:text-gray-300 whitespace-pre-line">{{.Layoff.Notes}}</p>
+        </div>
+        {{end}}
+    </div>
+
+    <!-- Comments Section -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 mb-8">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Comments</h2>
+
+        <!-- Comments List -->
+        <div id="comments-list" class="space-y-4 mb-6">
+            <!-- Comments will be loaded here -->
+        </div>
+
+        <!-- Add Comment Form -->
+        <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Add a Comment</h3>
+            <form id="comment-form" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="author_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name *</label>
+                        <input type="text" id="author_name" name="author_name" required
+                               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white">
+                    </div>
+                    <div>
+                        <label for="author_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email (optional)</label>
+                        <input type="email" id="author_email" name="author_email"
+                               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white">
+                    </div>
+                </div>
+                <div>
+                    <label for="content" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Comment *</label>
+                    <textarea id="content" name="content" rows="4" required
+                              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                              placeholder="Share your thoughts..."></textarea>
+                </div>
+                <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-md text-sm font-medium">
+                    Post Comment
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Back to Tracker -->
+    <div class="text-center">
+        <a href="/tracker" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-medium transition-all hover:shadow-lg">
+            ← Back to Tracker
+        </a>
+    </div>
+</div>
+
+<script>
+// Load comments when page loads
+async function loadComments() {
+    try {
+        const response = await fetch(`/layoffs/{{.Layoff.ID}}/comments`);
+        if (response.ok) {
+            const comments = await response.json();
+            displayComments(comments);
+        }
+    } catch (error) {
+        console.error('Error loading comments:', error);
+    }
+}
+
+function displayComments(comments) {
+    const container = document.getElementById('comments-list');
+    if (comments.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No comments yet. Be the first to comment!</p>';
+        return;
+    }
+
+    container.innerHTML = comments.map(comment => `
+        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center space-x-2">
+                    <span class="font-medium text-gray-900 dark:text-white">${comment.author_name}</span>
+                    ${comment.author_email ? `<span class="text-sm text-gray-500 dark:text-gray-400">(${comment.author_email})</span>` : ''}
+                </div>
+                <span class="text-sm text-gray-500 dark:text-gray-400">${new Date(comment.created_at).toLocaleDateString()}</span>
+            </div>
+            <p class="text-gray-700 dark:text-gray-300 whitespace-pre-line">${comment.content}</p>
+        </div>
+    `).join('');
+}
+
+// Handle comment form submission
+document.getElementById('comment-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(e.target);
+    const data = {
+        author_name: formData.get('author_name'),
+        author_email: formData.get('author_email'),
+        content: formData.get('content')
+    };
+
+    try {
+        const response = await fetch(`/layoffs/{{.Layoff.ID}}/comments`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams(data)
+        });
+
+        if (response.ok) {
+            e.target.reset();
+            loadComments(); // Reload comments
+        } else {
+            alert('Error posting comment. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error posting comment:', error);
+        alert('Error posting comment. Please try again.');
+    }
+});
+
+// Load comments on page load
+document.addEventListener('DOMContentLoaded', loadComments);
+</script>
 
     <!-- Company Header -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 mb-8">

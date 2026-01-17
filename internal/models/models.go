@@ -79,6 +79,16 @@ type FilterParams struct {
 	Limit         int    `json:"limit"`
 }
 
+type Comment struct {
+	ID          int       `json:"id"`
+	LayoffID    int       `json:"layoff_id"`
+	AuthorName  string    `json:"author_name"`
+	AuthorEmail string    `json:"author_email,omitempty"`
+	Content     string    `json:"content"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
 type PaginatedResult struct {
 	Data       interface{} `json:"data"`
 	Total      int         `json:"total"`
