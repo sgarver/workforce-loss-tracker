@@ -2,8 +2,9 @@
 <html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{.Title}}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>{{.Title}}</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -39,7 +40,7 @@
                         }
                     },
                     fontFamily: {
-                        sans: ['Times New Roman', 'serif'],
+                        sans: ['Switzer', 'sans-serif'],
                     },
                     animation: {
                         'fade-in': 'fadeIn 0.5s ease-in-out',
@@ -61,17 +62,68 @@
     </script>
     
     <!-- HTMX -->
+    <!-- Early theme script -->
+    <script>
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = savedTheme === 'dark' || (!savedTheme && prefersDark) ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+    </script>
+
+    <!-- Inline critical CSS for theme -->
+    <style>
+        [data-theme="light"] body {
+            background-color: white !important;
+            color: #333 !important;
+        }
+        [data-theme="dark"] body {
+            background-color: #111827 !important;
+            color: #f9fafb !important;
+        }
+        [data-theme="light"] nav {
+            background-color: rgba(255, 255, 255, 0.8) !important;
+        }
+        [data-theme="dark"] nav {
+            background-color: rgba(17, 24, 39, 0.8) !important;
+        }
+        [data-theme="light"] footer {
+            background-color: #f9fafb !important;
+        }
+        [data-theme="dark"] footer {
+            background-color: #1f2937 !important;
+        }
+        [data-theme="light"] .hero {
+            background: linear-gradient(to bottom right, #eff6ff, #ffffff, #eff6ff) !important;
+        }
+        [data-theme="dark"] .hero {
+            background: linear-gradient(to bottom right, #111827, #1f2937, #111827) !important;
+        }
+        [data-theme="light"] .section-bg {
+            background-color: white !important;
+        }
+        [data-theme="dark"] .section-bg {
+            background-color: #111827 !important;
+        }
+    </style>
+
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
-    
-    <!-- Chart.js -->
+
+    <!-- Switzer Font -->
+    <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,700&display=swap">
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <!-- Custom CSS -->
     <link href="/css/styles.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #111827 !important;
+        }
+    </style>
 </head>
-<body class="bg-white dark:bg-gray-900 font-sans antialiased">
+<body class="font-sans antialiased">
     <!-- Navigation -->
-    <nav class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-50">
+    <nav class="backdrop-blur-lg border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
@@ -119,7 +171,7 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+    <footer class="border-t border-gray-200 dark:border-gray-700">
         <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div class="col-span-1 md:col-span-2">
@@ -173,15 +225,18 @@
         function toggleTheme() {
             const html = document.documentElement;
             const themeIcon = document.getElementById('theme-icon');
-            
+            const body = document.body;
+
             if (html.getAttribute('data-theme') === 'dark') {
                 html.setAttribute('data-theme', 'light');
                 html.classList.remove('dark');
+                body.style.setProperty('background-color', 'white', 'important');
                 themeIcon.textContent = '🌙';
                 localStorage.setItem('theme', 'light');
             } else {
                 html.setAttribute('data-theme', 'dark');
                 html.classList.add('dark');
+                body.style.setProperty('background-color', '#111827', 'important');
                 themeIcon.textContent = '☀️';
                 localStorage.setItem('theme', 'dark');
             }
@@ -192,16 +247,21 @@
             const savedTheme = localStorage.getItem('theme');
             const themeIcon = document.getElementById('theme-icon');
             const html = document.documentElement;
-            
-            if (savedTheme === 'dark') {
-                html.setAttribute('data-theme', 'dark');
-                html.classList.add('dark');
-                themeIcon.textContent = '☀️';
+            const body = document.body;
+
+            if (savedTheme === 'light') {
+                html.setAttribute('data-theme', 'light');
+                html.classList.remove('dark');
+                body.style.setProperty('background-color', 'white', 'important');
+                themeIcon.textContent = '🌙';
             } else {
                 html.setAttribute('data-theme', 'dark');
                 html.classList.add('dark');
+                body.style.setProperty('background-color', '#111827', 'important');
                 themeIcon.textContent = '☀️';
-                localStorage.setItem('theme', 'dark');
+                if (savedTheme !== 'dark') {
+                    localStorage.setItem('theme', 'dark');
+                }
             }
         });
     </script>
