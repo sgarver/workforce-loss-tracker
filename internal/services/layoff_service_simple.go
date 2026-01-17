@@ -370,20 +370,6 @@ func (s *LayoffService) CreateComment(comment *models.Comment) error {
 
 	return nil
 }
-	defer rows.Close()
-
-	var industries []*models.Industry
-	for rows.Next() {
-		industry := &models.Industry{}
-		err := rows.Scan(&industry.ID, &industry.Name, &industry.Slug, &industry.CreatedAt)
-		if err != nil {
-			return nil, fmt.Errorf("error scanning industry row: %w", err)
-		}
-		industries = append(industries, industry)
-	}
-
-	return industries, nil
-}
 
 func (s *LayoffService) GetStats() (*models.Stats, error) {
 	stats, err := s.GetStatsWithMonths(6)
