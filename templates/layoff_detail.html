@@ -55,6 +55,7 @@
         <!-- Add Comment Form -->
         <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
             <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Add a Comment</h3>
+            {{if .User}}
             <form id="comment-form" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -78,6 +79,11 @@
                     Post Comment
                 </button>
             </form>
+            {{else}}
+            <p class="text-gray-600 dark:text-gray-400">
+                <a href="/auth/google" class="text-primary-600 hover:text-primary-700">Login with Google</a> to add comments.
+            </p>
+            {{end}}
         </div>
     </div>
 

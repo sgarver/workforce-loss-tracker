@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 )
 
@@ -36,6 +37,22 @@ func NewHandler(layoffService *services.LayoffService, userService *services.Use
 		userService:   userService,
 		templates:     templates,
 	}
+}
+
+func (h *Handler) getCurrentUser(c echo.Context) *models.User {
+	sess, err := session.Get("session", c)
+	if err != nil {
+		return nil
+	}
+	userID, ok := sess.Values["user_id"].(int)
+	if !ok {
+		return nil
+	}
+	user, err := h.userService.GetUserByID(userID)
+	if err != nil {
+		return nil
+	}
+	return user
 }
 
 func (h *Handler) Dashboard(c echo.Context) error {
@@ -100,6 +117,7 @@ func (h *Handler) Dashboard(c echo.Context) error {
 		"Title":      "Tech Layoff Tracker - Dashboard",
 		"ActivePage": "dashboard",
 		"Content":    template.HTML(contentBuf.String()),
+		"User":       h.getCurrentUser(c),
 	}
 
 	return c.Render(http.StatusOK, "layout.html", layoutData)
@@ -163,6 +181,7 @@ func (h *Handler) LayoffDetail(c echo.Context) error {
 	var contentBuf bytes.Buffer
 	data := map[string]interface{}{
 		"Layoff": layoff,
+		"User":   h.getCurrentUser(c),
 	}
 	err = h.templates.ExecuteTemplate(&contentBuf, "layoff_detail.html", data)
 	if err != nil {
@@ -173,6 +192,7 @@ func (h *Handler) LayoffDetail(c echo.Context) error {
 		"Title":      fmt.Sprintf("%s Layoff Details", layoff.Company.Name),
 		"ActivePage": "",
 		"Content":    template.HTML(contentBuf.String()),
+		"User":       h.getCurrentUser(c),
 	}
 
 	return c.Render(http.StatusOK, "layout.html", layoutData)
@@ -198,6 +218,7 @@ func (h *Handler) NewLayoff(c echo.Context) error {
 		"Title":      "Tech Layoff Tracker - Report Layoff",
 		"ActivePage": "",
 		"Content":    template.HTML(contentBuf.String()),
+		"User":       h.getCurrentUser(c),
 	}
 
 	return c.Render(http.StatusOK, "layout.html", layoutData)
@@ -270,6 +291,7 @@ func (h *Handler) Industries(c echo.Context) error {
 		"Title":      "Tech Layoff Tracker - Industries",
 		"ActivePage": "industries",
 		"Content":    template.HTML(contentBuf.String()),
+		"User":       h.getCurrentUser(c),
 	}
 
 	return c.Render(http.StatusOK, "layout.html", layoutData)

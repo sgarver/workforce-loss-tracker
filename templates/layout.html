@@ -177,6 +177,16 @@
                     <button onclick="toggleTheme()" class="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100 transition-colors">
                         <span id="theme-icon" class="text-lg">🌙</span>
                     </button>
+                    {{if .User}}
+                    <span class="text-gray-700 dark:text-gray-300 text-sm">Welcome, {{.User.Name}}!</span>
+                    <a href="/auth/logout" class="text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
+                        Logout
+                    </a>
+                    {{else}}
+                    <a href="/auth/google" class="text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
+                        Login
+                    </a>
+                    {{end}}
                     <a href="/export/csv" class="text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
                         Export Data
                     </a>
