@@ -23,7 +23,7 @@ Testing
 - [x] add additional logging if needed
 - [x] add an alerting system for issues, email/push notifications, failure to import data
 - [x] unit/integration test suite
-- [ ] add an alerting system for issues, site down (ping page?)
+- [x] add an alerting system for issues, site down (ping page?)
 
 Social features
 - [x] add membership system with federation from common providers
