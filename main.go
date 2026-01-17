@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"layoff-tracker/internal/database"
@@ -12,9 +13,21 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gorilla/sessions"
+	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 )
+
+type GoogleUser struct {
+	ID            string `json:"id"`
+	Email         string `json:"email"`
+	Name          string `json:"name"`
+	Picture       string `json:"picture"`
+	VerifiedEmail bool   `json:"verified_email"`
+}
 
 func main() {
 	// Initialize database
@@ -33,6 +46,16 @@ func main() {
 
 	// Initialize services
 	layoffService := services.NewLayoffService(db)
+	userService := services.NewUserService(db)
+
+	// OAuth2 config
+	googleOAuthConfig := &oauth2.Config{
+		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+		ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		RedirectURL:  "http://localhost:8080/auth/google/callback", // Update for production
+		Scopes:       []string{"openid", "profile", "email"},
+		Endpoint:     google.Endpoint,
+	}
 
 	// Load templates
 	templates := template.Must(template.New("").Funcs(template.FuncMap{
@@ -81,7 +104,7 @@ func main() {
 	))
 
 	// Initialize handlers
-	handler := handlers.NewHandler(layoffService, templates)
+	handler := handlers.NewHandler(layoffService, userService, templates)
 
 	// Initialize Echo
 	e := echo.New()
@@ -89,6 +112,7 @@ func main() {
 	// Middleware
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.Use(session.Middleware(sessions.NewCookieStore([]byte("your-secret-key")))) // Change for production
 	e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
 		Root:   "static",
 		Browse: false,
@@ -131,6 +155,54 @@ func main() {
 	// 		performNightlyImport(freeDataService, notificationService)
 	// 	}
 	// }()
+
+	// Auth routes
+	e.GET("/auth/google", func(c echo.Context) error {
+		url := googleOAuthConfig.AuthCodeURL("state", oauth2.AccessTypeOffline)
+		return c.Redirect(http.StatusTemporaryRedirect, url)
+	})
+	e.GET("/auth/google/callback", func(c echo.Context) error {
+		code := c.QueryParam("code")
+		if code == "" {
+			return c.String(http.StatusBadRequest, "No code provided")
+		}
+
+		token, err := googleOAuthConfig.Exchange(c.Request().Context(), code)
+		if err != nil {
+			return c.String(http.StatusInternalServerError, "Failed to exchange token")
+		}
+
+		client := googleOAuthConfig.Client(c.Request().Context(), token)
+		resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+		if err != nil {
+			return c.String(http.StatusInternalServerError, "Failed to get user info")
+		}
+		defer resp.Body.Close()
+
+		var googleUser GoogleUser
+		if err := json.NewDecoder(resp.Body).Decode(&googleUser); err != nil {
+			return c.String(http.StatusInternalServerError, "Failed to decode user info")
+		}
+
+		// Create or update user
+		user, err := userService.CreateUser("google", googleUser.ID, googleUser.Email, googleUser.Name, googleUser.Picture)
+		if err != nil {
+			return c.String(http.StatusInternalServerError, "Failed to create user")
+		}
+
+		// Store user ID in session
+		sess, _ := session.Get("session", c)
+		sess.Values["user_id"] = user.ID
+		sess.Save(c.Request(), c.Response())
+
+		return c.Redirect(http.StatusSeeOther, "/")
+	})
+	e.POST("/auth/logout", func(c echo.Context) error {
+		sess, _ := session.Get("session", c)
+		delete(sess.Values, "user_id")
+		sess.Save(c.Request(), c.Response())
+		return c.Redirect(http.StatusSeeOther, "/")
+	})
 
 	// Health check
 	e.GET("/ping", func(c echo.Context) error {
