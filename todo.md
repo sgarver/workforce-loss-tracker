@@ -15,8 +15,9 @@ Other site changes
 - [x] skip initial data import on startup
 - [x] set user-submitted layoffs to "pending" status for review
 - [x] create AGENTS.md file with change instructions
-- [ ] change colors and font style to more urban and serious looking
-- [ ] add banner image
+- [x] center FAQ page layout like industries page
+- [x] change colors and font style to more urban and serious looking
+- [hold] add banner image
 
 Testing
 - [x] add additional logging if needed
@@ -26,7 +27,7 @@ Testing
 
 Social features
 - [ ] add membership system with federation from common providers
-- [ ] add commenting system
+- [x] add commenting system
 
 Getting Production Ready
 - [ ] add admin functionality to review and approve submissions
