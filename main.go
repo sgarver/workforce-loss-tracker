@@ -18,6 +18,7 @@ import (
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/robfig/cron/v3"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -53,6 +54,14 @@ func main() {
 	// Initialize services
 	layoffService := services.NewLayoffService(db)
 	userService := services.NewUserService(db)
+	alertService := services.NewAlertService(userService, "localhost", 25, "alerts@localhost")
+
+	// Start daily data check alerts
+	c := cron.New()
+	c.AddFunc("@daily", func() {
+		sendNewDataAlerts(layoffService, userService, alertService)
+	})
+	c.Start()
 
 	// OAuth2 config
 	googleOAuthConfig := &oauth2.Config{
@@ -210,6 +219,10 @@ func main() {
 		return c.Redirect(http.StatusSeeOther, "/")
 	})
 
+	// Profile routes
+	e.GET("/profile", handler.Profile)
+	e.POST("/profile", handler.UpdateProfile)
+
 	// Health check
 	e.GET("/ping", func(c echo.Context) error {
 		return c.String(http.StatusOK, "pong")
@@ -270,4 +283,50 @@ func main() {
 
 	log.Printf("Server starting on port %s", port)
 	log.Fatal(e.Start("0.0.0.0:" + port))
+}
+
+func sendNewDataAlerts(layoffService *services.LayoffService, userService *services.UserService, alertService *services.AlertService) {
+	// Get current total layoffs
+	stats, err := layoffService.GetStats()
+	if err != nil {
+		log.Printf("Error getting stats for alerts: %v", err)
+		return
+	}
+	currentCount := stats.TotalLayoffs
+
+	// Get last alerted count
+	lastCountStr, err := userService.GetSystemSetting("last_alerted_layoff_count")
+	if err != nil {
+		log.Printf("Error getting last alerted count: %v", err)
+		return
+	}
+
+	var lastCount int
+	if lastCountStr != "" {
+		lastCount, _ = strconv.Atoi(lastCountStr)
+	}
+
+	if currentCount <= lastCount {
+		// No new data
+		return
+	}
+
+	newCount := currentCount - lastCount
+
+	// Get all users who want alerts
+	userIDs, err := userService.GetUsersForNewDataAlerts()
+	if err != nil {
+		log.Printf("Error getting users for alerts: %v", err)
+		return
+	}
+
+	for _, userID := range userIDs {
+		err := alertService.SendNewDataAlert(userID, newCount, time.Now().Format("January 2, 2006 at 3:04 PM UTC"))
+		if err != nil {
+			log.Printf("Error sending alert to user %d: %v", userID, err)
+		}
+	}
+
+	// Update last alerted count
+	userService.SetSystemSetting("last_alerted_layoff_count", strconv.Itoa(currentCount))
 }

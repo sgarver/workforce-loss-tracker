@@ -55,6 +55,55 @@ func (h *Handler) getCurrentUser(c echo.Context) *models.User {
 	return user
 }
 
+func (h *Handler) Profile(c echo.Context) error {
+	user := h.getCurrentUser(c)
+	if user == nil {
+		return c.Redirect(http.StatusSeeOther, "/auth/google")
+	}
+
+	prefs, err := h.userService.GetAlertPrefs(user.ID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	// Render profile content
+	var contentBuf bytes.Buffer
+	data := map[string]interface{}{
+		"User":  user,
+		"Prefs": prefs,
+	}
+	err = h.templates.ExecuteTemplate(&contentBuf, "profile.html", data)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	layoutData := map[string]interface{}{
+		"Title":      "Tech Layoff Tracker - Profile",
+		"ActivePage": "",
+		"Content":    template.HTML(contentBuf.String()),
+		"User":       user,
+	}
+
+	return c.Render(http.StatusOK, "layout.html", layoutData)
+}
+
+func (h *Handler) UpdateProfile(c echo.Context) error {
+	user := h.getCurrentUser(c)
+	if user == nil {
+		return c.Redirect(http.StatusSeeOther, "/auth/google")
+	}
+
+	emailEnabled := c.FormValue("email_alerts_enabled") == "on"
+	alertNewData := c.FormValue("alert_new_data") == "on"
+
+	err := h.userService.UpdateAlertPrefs(user.ID, emailEnabled, alertNewData)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.Redirect(http.StatusSeeOther, "/profile")
+}
+
 func (h *Handler) Dashboard(c echo.Context) error {
 	stats, err := h.layoffService.GetStats()
 	if err != nil {
