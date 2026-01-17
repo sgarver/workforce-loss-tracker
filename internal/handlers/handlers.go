@@ -104,10 +104,36 @@ func (h *Handler) Dashboard(c echo.Context) error {
 }
 
 func (h *Handler) Tracker(c echo.Context) error {
+	// Parse query parameters
+	params := h.ParseFilterParams(c)
+
+	layoffs, err := h.layoffService.GetLayoffs(params)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	industries, err := h.layoffService.GetIndustries()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	// Render tracker content
+	var contentBuf bytes.Buffer
+	data := map[string]interface{}{
+		"Layoffs":    layoffs.Data,
+		"Pagination": layoffs,
+		"Industries": industries,
+		"Filters":    params,
+	}
+	err = h.templates.ExecuteTemplate(&contentBuf, "tracker.html", data)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
 	layoutData := map[string]interface{}{
 		"Title":      "Tech Layoff Tracker - Browse Layoffs",
 		"ActivePage": "tracker",
-		"Content":    template.HTML("<p>Tracker page coming soon.</p>"),
+		"Content":    contentBuf.String(),
 	}
 
 	return c.Render(http.StatusOK, "layout.html", layoutData)
