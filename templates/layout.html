@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        },
+                        gray: {
+                            50: '#f9fafb',
+                            100: '#f3f4f6',
+                            200: '#e5e7eb',
+                            300: '#d1d5db',
+                            400: '#9ca3af',
+                            500: '#6b7280',
+                            600: '#4b5563',
+                            700: '#374151',
+                            800: '#1f2937',
+                            900: '#111827',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-up': 'slideUp 0.6s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom CSS -->
+    <link href="/css/styles.css" rel="stylesheet">
+</head>
+<body class="bg-white dark:bg-gray-900 font-sans antialiased">
+    <!-- Navigation -->
+    <nav class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <a href="/" class="flex items-center space-x-2">
+                            <div class="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
+                                <span class="text-white font-bold text-sm">📊</span>
+                            </div>
+                            <span class="text-xl font-bold text-gray-900 dark:text-white">Tech Layoff Tracker</span>
+                        </a>
+                    </div>
+                    <div class="hidden md:ml-8 md:flex md:space-x-8">
+                        <a href="/" class="border-b-2 {{if eq .ActivePage "dashboard"}}border-primary-500 text-primary-600{{else}}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{{end}} px-1 py-4 text-sm font-medium transition-colors">
+                            Dashboard
+                        </a>
+                        <a href="/tracker" class="border-b-2 {{if eq .ActivePage "tracker"}}border-primary-500 text-primary-600{{else}}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{{end}} px-1 py-4 text-sm font-medium transition-colors">
+                            Tracker
+                        </a>
+                        <a href="/industries" class="border-b-2 {{if eq .ActivePage "industries"}}border-primary-500 text-primary-600{{else}}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{{end}} px-1 py-4 text-sm font-medium transition-colors">
+                            Industries
+                        </a>
+                        <a href="/faq" class="border-b-2 {{if eq .ActivePage "faq"}}border-primary-500 text-primary-600{{else}}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{{end}} px-1 py-4 text-sm font-medium transition-colors">
+                            FAQ
+                        </a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="toggleTheme()" class="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100 transition-colors">
+                        <span id="theme-icon" class="text-lg">🌙</span>
+                    </button>
+                    <a href="/export/csv" class="text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
+                        Export Data
+                    </a>
+                    <a href="/layoffs/new" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all hover:shadow-lg">
+                        Report Layoff
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="py-8 px-4 sm:px-6 lg:px-8">
+        {{.Content}}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+        <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div class="col-span-1 md:col-span-2">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-sm">📊</span>
+                        </div>
+                        <span class="text-xl font-bold text-gray-900 dark:text-white">Tech Layoff Tracker</span>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                        Real-time tracking of tech industry layoffs with data from official WARN Act filings.
+                        Stay informed about workforce changes across major technology companies.
+                    </p>
+                </div>
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Navigation</h3>
+                    <ul class="space-y-2">
+                        <li><a href="/" class="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">Dashboard</a></li>
+                        <li><a href="/tracker" class="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">Tracker</a></li>
+                        <li><a href="/industries" class="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">Industries</a></li>
+                        <li><a href="/faq" class="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">FAQ</a></li>
+                        <li><a href="/export/csv" class="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">Export Data</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Community</h3>
+                    <ul class="space-y-2">
+                        <li><a href="/layoffs/new" class="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">Report Layoff</a></li>
+                        <li><a href="https://www.dol.gov/agencies/eta/layoffs/warn" target="_blank" class="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">WARN Act Info</a></li>
+                        <li><span class="text-gray-600 dark:text-gray-300">Data Privacy</span></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-200 dark:border-gray-700 mt-8 pt-8">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <p class="text-gray-500 dark:text-gray-400 text-sm">
+                        © 2026 Tech Layoff Tracker. Built with transparency in mind.
+                    </p>
+                    <div class="flex space-x-6 mt-4 md:mt-0">
+                        <span class="text-gray-500 dark:text-gray-400 text-sm">Privacy</span>
+                        <span class="text-gray-500 dark:text-gray-400 text-sm">Terms</span>
+                        <span class="text-gray-500 dark:text-gray-400 text-sm">Contact</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Theme toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const themeIcon = document.getElementById('theme-icon');
+            
+            if (html.getAttribute('data-theme') === 'dark') {
+                html.setAttribute('data-theme', 'light');
+                html.classList.remove('dark');
+                themeIcon.textContent = '🌙';
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                html.classList.add('dark');
+                themeIcon.textContent = '☀️';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // Load saved theme
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme');
+            const themeIcon = document.getElementById('theme-icon');
+            const html = document.documentElement;
+            
+            if (savedTheme === 'dark') {
+                html.setAttribute('data-theme', 'dark');
+                html.classList.add('dark');
+                themeIcon.textContent = '☀️';
+            }
+        });
+    </script>
+</body>
+</html>

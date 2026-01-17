@@ -1,0 +1,113 @@
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{.Layoff.Company.Name}} Layoffs</h1>
+        <p class="mt-2 text-gray-600 dark:text-gray-400">Detailed information about this layoff event</p>
+    </div>
+
+    <!-- Company Header -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 mb-8">
+        <div class="p-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 h-16 w-16 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-full">
+                        <span class="text-2xl">🏢</span>
+                    </div>
+                    <div class="ml-4">
+                        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{.Layoff.Company.Name}}</h1>
+                        <div class="mt-1 flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
+                            <span>{{if .Layoff.Company.Industry}}{{.Layoff.Company.Industry.Name}}{{else}}Unknown Industry{{end}}</span>
+                            {{if .Layoff.Company.EmployeeCount}}
+                            <span>•</span>
+                            <span>{{.Layoff.Company.EmployeeCount}} employees</span>
+                            {{end}}
+                            {{if .Layoff.Company.Website}}
+                            <span>•</span>
+                            <a href="{{.Layoff.Company.Website}}" target="_blank" class="text-primary-600 dark:text-primary-400 hover:underline">
+                                Website →
+                            </a>
+                            {{end}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Layoff Details -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-8">
+            <!-- Layoff Information -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">📉 Layoff Details</h2>
+                </div>
+                <div class="p-6">
+                    <dl class="grid grid-cols-1 gap-y-4 sm:grid-cols-2 sm:gap-x-6">
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Employees Affected</dt>
+                            <dd class="mt-1 text-lg font-bold text-red-600 dark:text-red-400">{{.Layoff.EmployeesAffected}}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Layoff Date</dt>
+                            <dd class="mt-1 text-lg font-semibold text-gray-900 dark:text-white">{{.Layoff.LayoffDate.Format "January 2, 2006"}}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Reported On</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{.Layoff.CreatedAt.Format "January 2, 2006"}}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Source</dt>
+                            <dd class="mt-1">
+                                {{if .Layoff.SourceURL.Valid}}
+                                <a href="{{.Layoff.SourceURL.String}}" target="_blank" class="text-primary-600 dark:text-primary-400 hover:underline text-sm">
+                                    View Source Report →
+                                </a>
+                                {{else}}
+                                <span class="text-gray-400 dark:text-gray-500 text-sm">No source available</span>
+                                {{end}}
+                            </dd>
+                        </div>
+                    </dl>
+
+                    {{if .Layoff.Notes}}
+                    <div class="mt-6">
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Additional Notes</dt>
+                        <dd class="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 p-3 rounded-md">
+                            {{.Layoff.Notes}}
+                        </dd>
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Share -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">🔗 Share</h3>
+                <div class="space-y-3">
+                    <button onclick="copyToClipboard()" class="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                        Copy Link
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyToClipboard() {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+        const button = event.target;
+        const originalText = button.textContent;
+        button.textContent = 'Link Copied!';
+        setTimeout(() => {
+            button.textContent = originalText;
+        }, 2000);
+    });
+}
+</script>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JS Test Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div id="test-results"></div>
+    <canvas id="monthlyTrendChart" width="400" height="200"></canvas>
+    <canvas id="industryChart" width="400" height="200"></canvas>
+
+    <script>
+        // Copy the JavaScript from dashboard.html
+        let monthlyChart = null;
+        let industryChart = null;
+
+        let chartData = {
+            monthlyTrend: [{"month":"2026-01","count":10,"employees":500,"period_label":"Week"}],
+            industryBreakdown: [{"industry":"Tech","count":5,"employees":200}]
+        };
+
+        function destroyCharts() {
+            if (monthlyChart) {
+                monthlyChart.destroy();
+                monthlyChart = null;
+            }
+            if (industryChart) {
+                industryChart.destroy();
+                industryChart = null;
+            }
+        }
+
+        function renderCharts() {
+            // Destroy existing charts to prevent canvas reuse errors
+            destroyCharts();
+
+            // Monthly Trend Chart
+            const monthlyTrendCanvas = document.getElementById('monthlyTrendChart');
+            if (!monthlyTrendCanvas) {
+                console.error('Monthly trend chart canvas not found');
+                return;
+            }
+
+            const monthlyCtx = monthlyTrendCanvas.getContext('2d');
+            const monthlyTrendData = chartData.monthlyTrend;
+
+            try {
+                monthlyChart = new Chart(monthlyCtx, {
+                    type: 'line',
+                    data: {
+                        labels: monthlyTrendData.map(item => {
+                            const [year, week] = item.month.split('-');
+                            return `Week ${week}`;
+                        }),
+                        datasets: [{
+                            label: 'Layoffs',
+                            data: monthlyTrendData.map(item => item.count),
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            } catch (error) {
+                console.error('Error creating monthly trend chart:', error);
+                document.getElementById('test-results').innerHTML += '<p style="color:red">❌ Monthly chart error: ' + error.message + '</p>';
+            }
+
+            // Test destroyCharts function
+            setTimeout(() => {
+                console.log('Testing destroyCharts...');
+                destroyCharts();
+                document.getElementById('test-results').innerHTML += '<p style="color:green">✅ destroyCharts executed successfully</p>';
+            }, 1000);
+        }
+
+        // Test renderCharts function
+        console.log('Testing renderCharts...');
+        renderCharts();
+        document.getElementById('test-results').innerHTML += '<p style="color:green">✅ renderCharts executed successfully</p>';
+
+        // Test calling renderCharts multiple times (simulates button clicks)
+        setTimeout(() => {
+            console.log('Testing renderCharts again...');
+            renderCharts();
+            document.getElementById('test-results').innerHTML += '<p style="color:green">✅ Second renderCharts call successful</p>';
+        }, 2000);
+
+        setTimeout(() => {
+            console.log('Testing renderCharts third time...');
+            renderCharts();
+            document.getElementById('test-results').innerHTML += '<p style="color:green">✅ Third renderCharts call successful</p>';
+        }, 4000);
+    </script>
+</body>
+</html>

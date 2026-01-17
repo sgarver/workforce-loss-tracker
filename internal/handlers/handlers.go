@@ -1,0 +1,354 @@
+package handlers
+
+import (
+	"bytes"
+	"database/sql"
+	"fmt"
+	"html/template"
+	"io"
+	"layoff-tracker/internal/models"
+	"layoff-tracker/internal/services"
+	"log"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/labstack/echo/v4"
+)
+
+type TemplateRenderer struct {
+	Templates *template.Template
+}
+
+func (t *TemplateRenderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+	return t.Templates.ExecuteTemplate(w, name, data)
+}
+
+type Handler struct {
+	layoffService *services.LayoffService
+	templates     *template.Template
+}
+
+func NewHandler(layoffService *services.LayoffService, templates *template.Template) *Handler {
+	return &Handler{
+		layoffService: layoffService,
+		templates:     templates,
+	}
+}
+
+func (h *Handler) Dashboard(c echo.Context) error {
+	stats, err := h.layoffService.GetStats()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	// Format numbers for display (fallback if service didn't set them)
+	if stats.TotalLayoffsFormatted == "" {
+		formatNumber := func(n int) string {
+			if n >= 1000000 {
+				return fmt.Sprintf("%.1fM", float64(n)/1000000)
+			} else if n >= 1000 {
+				return fmt.Sprintf("%.1fK", float64(n)/1000)
+			}
+			return fmt.Sprintf("%d", n)
+		}
+		stats.TotalLayoffsFormatted = formatNumber(stats.TotalLayoffs)
+		stats.TotalCompaniesFormatted = formatNumber(stats.TotalCompanies)
+		stats.TotalEmployeesFormatted = formatNumber(stats.TotalEmployeesAffected)
+		stats.RecentLayoffsFormatted = formatNumber(stats.RecentLayoffs)
+	}
+
+	// Calculate current quarter information
+	now := time.Now()
+	year := now.Year()
+	month := int(now.Month())
+	quarter := (month-1)/3 + 1
+
+	var quarterMonths string
+	switch quarter {
+	case 1:
+		quarterMonths = "Jan-Mar"
+	case 2:
+		quarterMonths = "Apr-Jun"
+	case 3:
+		quarterMonths = "Jul-Sep"
+	case 4:
+		quarterMonths = "Oct-Dec"
+	default:
+		quarterMonths = "Unknown"
+	}
+
+	// Get last import time
+	lastImportTime, err := h.layoffService.GetLastImportTime()
+	if err != nil {
+		log.Printf("Error getting last import time: %v", err)
+		lastImportTime = "Unknown"
+	}
+
+	// Render dashboard content
+	var contentBuf bytes.Buffer
+	err = h.templates.ExecuteTemplate(&contentBuf, "dashboard.html", map[string]interface{}{
+		"Stats":             stats,
+		"CurrentQuarter":    fmt.Sprintf("Q%d %d (%s)", quarter, year, quarterMonths),
+		"LastImportTime":    lastImportTime,
+		"SponsoredListings": []interface{}{}, // Empty for now
+	})
+
+	layoutData := map[string]interface{}{
+		"Title":      "Tech Layoff Tracker - Dashboard",
+		"ActivePage": "dashboard",
+		"Content":    template.<!DOCTYPE html><html><head><title>Tech Layoff Tracker - Report Layoff</title></head><body>"+"<h1>Report Layoff</h1>"+"</body></html>("<h1>Report Layoff</h1>"),
+	}
+
+	return c.Render(http.StatusOK, "layout.html", layoutData)
+}
+
+func (h *Handler) Tracker(c echo.Context) error {
+	// Parse query parameters
+	params := h.ParseFilterParams(c)
+
+	layoffs, err := h.layoffService.GetLayoffs(params)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	industries, err := h.layoffService.GetIndustries()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	// Render tracker content
+	var contentBuf bytes.Buffer
+	data := map[string]interface{}{
+		"Layoffs":    layoffs.Data,
+		"Pagination": layoffs,
+		"Industries": industries,
+		"Filters":    params,
+	}
+	err = h.templates.ExecuteTemplate(&contentBuf, "tracker.html", data)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	layoutData := map[string]interface{}{
+		"Title":      "Tech Layoff Tracker - Browse Layoffs",
+		"ActivePage": "tracker",
+		"Content":    template.<!DOCTYPE html><html><head><title>Tech Layoff Tracker - Report Layoff</title></head><body>"+"<h1>Report Layoff</h1>"+"</body></html>("<h1>Report Layoff</h1>"),
+	}
+
+	return c.Render(http.StatusOK, "layout.html", layoutData)
+}
+
+func (h *Handler) LayoffDetail(c echo.Context) error {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid layoff ID"})
+	}
+
+	layoff, err := h.layoffService.GetLayoff(id)
+	if err != nil {
+		if err.Error() == "layoff not found" {
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "Layoff not found"})
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	data := map[string]interface{}{
+		"Layoff": layoff,
+		"Page":   "layoff_detail",
+	}
+
+	return c.Render(http.StatusOK, "layoff_detail", data)
+}
+
+func (h *Handler) NewLayoff(c echo.Context) error {
+	industries, err := h.layoffService.GetIndustries()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	// Render new_layoff content
+	var contentBuf bytes.Buffer
+	data := map[string]interface{}{
+		"Industries": industries,
+	}
+	err = h.templates.ExecuteTemplate(&contentBuf, "new_layoff.html", data)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.HTML(http.StatusOK, "<link href="/css/styles.css" rel="stylesheet"><div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"><div class="mb-8"><h1 class="text-3xl font-bold text-gray-900 dark:text-white">Report New Layoff</h1><p class="mt-2 text-gray-600 dark:text-gray-400">Help us keep community informed by submitting layoff information</p></div><div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700"><form method="POST" action="/layoffs" class="p-6 space-y-6"><div class="space-y-4"><h3 class="text-lg font-medium text-gray-900 dark:text-white">Layoff Information</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="company_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Company Name *</label><input type="text" id="company_name" name="company_name" required class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white" placeholder="Enter company name"></div><div><label for="employees_affected" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Employees Affected *</label><input type="number" id="employees_affected" name="employees_affected" required min="1" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="layoff_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Layoff Date *</label><input type="date" id="layoff_date" name="layoff_date" required class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"></div><div><label for="source_url" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Source URL</label><input type="url" id="source_url" name="source_url" placeholder="https://news-article.com" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"></div></div><div><label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Additional Context</label><textarea id="notes" name="notes" rows="4" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white" placeholder="Provide any additional context about layoff (reason, departments affected, etc.)"></textarea></div></div><div class="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700"><div class="text-sm text-gray-500 dark:text-gray-400">* Required fields</div><div class="space-x-4"><a href="/tracker" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Cancel</a><button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-md text-sm font-medium">Submit Layoff Report</button></div></div></form></div></div>")
+
+	var layoutBuf bytes.Buffer
+	err = h.templates.ExecuteTemplate(&layoutBuf, "layout.html", layoutData)
+	if err != nil {
+		return c.HTML(http.StatusOK, "Error: " + err.Error())
+	}
+
+	return c.HTML(http.StatusOK, layoutBuf.String())
+}
+
+func (h *Handler) CreateLayoff(c echo.Context) error {
+	// Custom binding for form data
+	companyName := c.FormValue("company_name")
+	employeesAffectedStr := c.FormValue("employees_affected")
+	layoffDateStr := c.FormValue("layoff_date")
+	sourceURL := c.FormValue("source_url")
+	notes := c.FormValue("notes")
+
+	// Validate required fields
+	if companyName == "" || employeesAffectedStr == "" || layoffDateStr == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Missing required fields"})
+	}
+
+	// Parse employees affected
+	employeesAffected, err := strconv.Atoi(employeesAffectedStr)
+	if err != nil || employeesAffected <= 0 {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid employees affected"})
+	}
+
+	// Parse layoff date
+	layoffDate, err := time.Parse("2006-01-02", layoffDateStr)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid layoff date"})
+	}
+
+	// Find or create company
+	companyID, err := h.layoffService.GetOrCreateCompany(companyName)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to process company"})
+	}
+
+	// Create layoff
+	layoff := &models.Layoff{
+		CompanyID:         companyID,
+		EmployeesAffected: employeesAffected,
+		LayoffDate:        layoffDate,
+		SourceURL:         sql.NullString{String: sourceURL, Valid: sourceURL != ""},
+		Notes:             notes,
+	}
+
+	if err := h.layoffService.CreateLayoff(layoff); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	// Redirect back to tracker or return HTMX response
+	if isHTMXRequest(c) {
+		c.Response().Header().Set("HX-Redirect", "/tracker")
+		return c.NoContent(http.StatusOK)
+	}
+	return c.Redirect(http.StatusSeeOther, "/tracker")
+}
+
+func (h *Handler) Industries(c echo.Context) error {
+	industries, err := h.layoffService.GetIndustries()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	// Render industries content
+	var contentBuf bytes.Buffer
+	data := map[string]interface{}{
+		"Industries": industries,
+	}
+	err = h.templates.ExecuteTemplate(&contentBuf, "industries.html", data)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	layoutData := map[string]interface{}{
+		"Title":      "Tech Layoff Tracker - Industries",
+		"ActivePage": "industries",
+		"Content":    template.<!DOCTYPE html><html><head><title>Tech Layoff Tracker - Report Layoff</title></head><body>"+"<h1>Report Layoff</h1>"+"</body></html>("<h1>Report Layoff</h1>"),
+	}
+
+	return c.Render(http.StatusOK, "layout.html", layoutData)
+}
+
+func (h *Handler) FAQ(c echo.Context) error {
+	// Render faq content
+	var contentBuf bytes.Buffer
+	err := h.templates.ExecuteTemplate(&contentBuf, "faq.html", map[string]interface{}{})
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	layoutData := map[string]interface{}{
+		"Title":      "Tech Layoff Tracker - FAQ",
+		"ActivePage": "faq",
+		"Content":    template.<!DOCTYPE html><html><head><title>Tech Layoff Tracker - Report Layoff</title></head><body>"+"<h1>Report Layoff</h1>"+"</body></html>("<h1>Report Layoff</h1>"),
+	}
+
+	return c.Render(http.StatusOK, "layout.html", layoutData)
+}
+
+func (h *Handler) ExportCSV(c echo.Context) error {
+	params := h.ParseFilterParams(c)
+	params.Limit = 10000 // Export up to 10,000 records
+
+	layoffs, err := h.layoffService.GetLayoffs(params)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	// Generate CSV
+	var csvLines []string
+	csvLines = append(csvLines, "Company,Industry,Employees Affected,Layoff Date,Source URL,Notes")
+
+	for _, item := range layoffs.Data.([]*models.Layoff) {
+		sourceURL := ""
+		if item.SourceURL.Valid {
+			sourceURL = item.SourceURL.String
+		}
+		line := fmt.Sprintf(`"%s","%s",%d,"%s","%s","%s"`,
+			item.Company.Name,
+			item.Company.Industry.Name,
+			item.EmployeesAffected,
+			item.LayoffDate.Format("2006-01-02"),
+			sourceURL,
+			strings.ReplaceAll(item.Notes, `"`, `""`))
+		csvLines = append(csvLines, line)
+	}
+
+	csvContent := strings.Join(csvLines, "\n")
+
+	c.Response().Header().Set("Content-Type", "text/csv")
+	c.Response().Header().Set("Content-Disposition", "attachment; filename=layoffs.csv")
+	return c.String(http.StatusOK, csvContent)
+}
+
+func (h *Handler) ParseFilterParams(c echo.Context) models.FilterParams {
+	params := models.FilterParams{}
+
+	// Parse pagination
+	if page, err := strconv.Atoi(c.QueryParam("page")); err == nil {
+		params.Page = page
+	}
+	if limit, err := strconv.Atoi(c.QueryParam("limit")); err == nil {
+		params.Limit = limit
+	}
+
+	// Parse filters
+	if industryID, err := strconv.Atoi(c.QueryParam("industry_id")); err == nil {
+		params.IndustryID = industryID
+	}
+	if minEmployees, err := strconv.Atoi(c.QueryParam("min_employees")); err == nil {
+		params.MinEmployees = minEmployees
+	}
+	if maxEmployees, err := strconv.Atoi(c.QueryParam("max_employees")); err == nil {
+		params.MaxEmployees = maxEmployees
+	}
+
+	params.StartDate = c.QueryParam("start_date")
+	params.EndDate = c.QueryParam("end_date")
+	params.Search = c.QueryParam("search")
+	params.SortBy = c.QueryParam("sort_by")
+	params.SortDirection = c.QueryParam("sort_direction")
+
+	return params
+}
+
+func isHTMXRequest(c echo.Context) bool {
+	return c.Request().Header.Get("HX-Request") == "true"
+}
