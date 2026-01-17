@@ -98,7 +98,7 @@ func (h *Handler) Dashboard(c echo.Context) error {
 	layoutData := map[string]interface{}{
 		"Title":      "Tech Layoff Tracker - Dashboard",
 		"ActivePage": "dashboard",
-		"Content":    template.<!DOCTYPE html><html><head><title>Tech Layoff Tracker - Report Layoff</title></head><body>"+"<h1>Report Layoff</h1>"+"</body></html>("<h1>Report Layoff</h1>"),
+		"Content":    template.HTML(contentBuf.String()),
 	}
 
 	return c.Render(http.StatusOK, "layout.html", layoutData)
@@ -134,7 +134,7 @@ func (h *Handler) Tracker(c echo.Context) error {
 	layoutData := map[string]interface{}{
 		"Title":      "Tech Layoff Tracker - Browse Layoffs",
 		"ActivePage": "tracker",
-		"Content":    template.<!DOCTYPE html><html><head><title>Tech Layoff Tracker - Report Layoff</title></head><body>"+"<h1>Report Layoff</h1>"+"</body></html>("<h1>Report Layoff</h1>"),
+		"Content":    template.HTML(contentBuf.String()),
 	}
 
 	return c.Render(http.StatusOK, "layout.html", layoutData)
@@ -168,7 +168,6 @@ func (h *Handler) NewLayoff(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	// Render new_layoff content
 	var contentBuf bytes.Buffer
 	data := map[string]interface{}{
 		"Industries": industries,
@@ -178,17 +177,14 @@ func (h *Handler) NewLayoff(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	return c.HTML(http.StatusOK, "<link href="/css/styles.css" rel="stylesheet"><div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"><div class="mb-8"><h1 class="text-3xl font-bold text-gray-900 dark:text-white">Report New Layoff</h1><p class="mt-2 text-gray-600 dark:text-gray-400">Help us keep community informed by submitting layoff information</p></div><div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700"><form method="POST" action="/layoffs" class="p-6 space-y-6"><div class="space-y-4"><h3 class="text-lg font-medium text-gray-900 dark:text-white">Layoff Information</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="company_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Company Name *</label><input type="text" id="company_name" name="company_name" required class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white" placeholder="Enter company name"></div><div><label for="employees_affected" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Employees Affected *</label><input type="number" id="employees_affected" name="employees_affected" required min="1" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="layoff_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Layoff Date *</label><input type="date" id="layoff_date" name="layoff_date" required class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"></div><div><label for="source_url" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Source URL</label><input type="url" id="source_url" name="source_url" placeholder="https://news-article.com" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"></div></div><div><label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Additional Context</label><textarea id="notes" name="notes" rows="4" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white" placeholder="Provide any additional context about layoff (reason, departments affected, etc.)"></textarea></div></div><div class="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700"><div class="text-sm text-gray-500 dark:text-gray-400">* Required fields</div><div class="space-x-4"><a href="/tracker" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Cancel</a><button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-md text-sm font-medium">Submit Layoff Report</button></div></div></form></div></div>")
-
-	var layoutBuf bytes.Buffer
-	err = h.templates.ExecuteTemplate(&layoutBuf, "layout.html", layoutData)
-	if err != nil {
-		return c.HTML(http.StatusOK, "Error: " + err.Error())
+	layoutData := map[string]interface{}{
+		"Title":      "Tech Layoff Tracker - Report Layoff",
+		"ActivePage": "report",
+		"Content":    template.HTML(contentBuf.String()),
 	}
 
-	return c.HTML(http.StatusOK, layoutBuf.String())
+	return c.Render(http.StatusOK, "layout.html", layoutData)
 }
-
 func (h *Handler) CreateLayoff(c echo.Context) error {
 	// Custom binding for form data
 	companyName := c.FormValue("company_name")
@@ -227,6 +223,7 @@ func (h *Handler) CreateLayoff(c echo.Context) error {
 		LayoffDate:        layoffDate,
 		SourceURL:         sql.NullString{String: sourceURL, Valid: sourceURL != ""},
 		Notes:             notes,
+		Status:            "pending",
 	}
 
 	if err := h.layoffService.CreateLayoff(layoff); err != nil {
@@ -260,7 +257,7 @@ func (h *Handler) Industries(c echo.Context) error {
 	layoutData := map[string]interface{}{
 		"Title":      "Tech Layoff Tracker - Industries",
 		"ActivePage": "industries",
-		"Content":    template.<!DOCTYPE html><html><head><title>Tech Layoff Tracker - Report Layoff</title></head><body>"+"<h1>Report Layoff</h1>"+"</body></html>("<h1>Report Layoff</h1>"),
+		"Content":    template.HTML(contentBuf.String()),
 	}
 
 	return c.Render(http.StatusOK, "layout.html", layoutData)
@@ -277,7 +274,7 @@ func (h *Handler) FAQ(c echo.Context) error {
 	layoutData := map[string]interface{}{
 		"Title":      "Tech Layoff Tracker - FAQ",
 		"ActivePage": "faq",
-		"Content":    template.<!DOCTYPE html><html><head><title>Tech Layoff Tracker - Report Layoff</title></head><body>"+"<h1>Report Layoff</h1>"+"</body></html>("<h1>Report Layoff</h1>"),
+		"Content":    template.HTML(contentBuf.String()),
 	}
 
 	return c.Render(http.StatusOK, "layout.html", layoutData)

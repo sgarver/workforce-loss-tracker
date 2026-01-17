@@ -175,9 +175,6 @@ func main() {
 		ticker := time.NewTicker(24 * time.Hour)
 		defer ticker.Stop()
 
-		// Perform initial import
-		performNightlyImport(freeDataService, notificationService)
-
 		for range ticker.C {
 			performNightlyImport(freeDataService, notificationService)
 		}
