@@ -112,22 +112,32 @@ func (h *Handler) Tracker(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
+	industries, err := h.layoffService.GetIndustries()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
 	// Render tracker content
 	var contentBuf bytes.Buffer
 	data := map[string]interface{}{
-		"Layoffs":    layoffs.Data,
-		"Pagination": layoffs,
-		"Filters":    params,
+		"Layoffs": layoffs.Data,
+		"Filters": params,
+		"Pagination": map[string]interface{}{
+			"Page":       layoffs.Page,
+			"TotalPages": layoffs.TotalPages,
+			"Total":      layoffs.Total,
+		},
+		"Industries": industries,
 	}
 	err = h.templates.ExecuteTemplate(&contentBuf, "tracker.html", data)
 	if err != nil {
-		return c.HTML(http.StatusInternalServerError, "Error rendering template: "+err.Error())
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
 	layoutData := map[string]interface{}{
 		"Title":      "Tech Layoff Tracker - Browse Layoffs",
 		"ActivePage": "tracker",
-		"Content":    contentBuf.String(),
+		"Content":    template.HTML(contentBuf.String()),
 	}
 
 	return c.Render(http.StatusOK, "layout.html", layoutData)
@@ -235,8 +245,8 @@ func (h *Handler) FAQ(c echo.Context) error {
 	}
 
 	layoutData := map[string]interface{}{
-		"Title":      "Tech Layoff Tracker - FAQ",
-		"ActivePage": "faq",
+		"Title":      "Tech Layoff Tracker - Browse Layoffs",
+		"ActivePage": "tracker",
 		"Content":    template.HTML(contentBuf.String()),
 	}
 
