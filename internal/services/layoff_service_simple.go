@@ -147,20 +147,69 @@ func (s *LayoffService) GetLayoffs(params models.FilterParams) (*models.Paginate
 			},
 		}
 
-		var logoURL sql.NullString
+		var employeesAffected sql.NullInt64
+		var layoffDate sql.NullTime
+		var sourceURL sql.NullString
+		var notes sql.NullString
+		var status sql.NullString
+		var createdAt sql.NullTime
+		var layoffCompanyID sql.NullInt64
+		var companyID sql.NullInt64
+		var companyName sql.NullString
+		var employeeCount sql.NullInt64
 		var website sql.NullString
+		var logoURL sql.NullString
+		var companyCreatedAt sql.NullTime
+		var companyUpdatedAt sql.NullTime
 		var industryID sql.NullInt64
 		var industryName sql.NullString
 		var industrySlug sql.NullString
-		var employeeCount sql.NullInt64
 
 		err := rows.Scan(
-			&layoff.ID, &layoff.CompanyID, &layoff.EmployeesAffected, &layoff.LayoffDate,
-			&layoff.SourceURL, &layoff.Notes, &layoff.Status, &layoff.CreatedAt,
-			&layoff.Company.ID, &layoff.Company.Name, &employeeCount,
-			&website, &logoURL, &layoff.Company.CreatedAt, &layoff.Company.UpdatedAt,
+			&layoff.ID, &layoffCompanyID, &employeesAffected, &layoffDate,
+			&sourceURL, &notes, &status, &createdAt,
+			&companyID, &companyName, &employeeCount,
+			&website, &logoURL, &companyCreatedAt, &companyUpdatedAt,
 			&industryID, &industryName, &industrySlug,
 		)
+
+		layoff.CompanyID = int(layoffCompanyID.Int64)
+		layoff.EmployeesAffected = int(employeesAffected.Int64)
+		if layoffDate.Valid {
+			layoff.LayoffDate = layoffDate.Time
+		} else {
+			layoff.LayoffDate = time.Now()
+		}
+		layoff.SourceURL = sourceURL
+		layoff.Notes = notes.String
+		layoff.Status = status.String
+		if createdAt.Valid {
+			layoff.CreatedAt = createdAt.Time
+		} else {
+			layoff.CreatedAt = time.Now()
+		}
+		layoff.Company.ID = int(companyID.Int64)
+		if companyName.Valid {
+			layoff.Company.Name = companyName.String
+		} else {
+			layoff.Company.Name = "Unknown Company"
+		}
+		if companyCreatedAt.Valid {
+			layoff.Company.CreatedAt = companyCreatedAt.Time
+		} else {
+			layoff.Company.CreatedAt = time.Now()
+		}
+		if companyUpdatedAt.Valid {
+			layoff.Company.UpdatedAt = companyUpdatedAt.Time
+		} else {
+			layoff.Company.UpdatedAt = time.Now()
+		}
+		if industryID.Valid {
+			layoff.Company.Industry.ID = int(industryID.Int64)
+		}
+		layoff.Company.Industry.Name = industryName.String
+		layoff.Company.Industry.Slug = industrySlug.String
+		layoff.Company.Industry.CreatedAt = time.Now()
 
 		if employeeCount.Valid && employeeCount.Int64 > 0 {
 			val := int(employeeCount.Int64)

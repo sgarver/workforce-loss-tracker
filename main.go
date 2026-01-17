@@ -5,7 +5,6 @@ import (
 	"html/template"
 	"layoff-tracker/internal/database"
 	"layoff-tracker/internal/handlers"
-	"layoff-tracker/internal/models"
 	"layoff-tracker/internal/services"
 	"log"
 	"net/http"
@@ -16,55 +15,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
-
-func performNightlyImport(freeDataService *services.FreeDataService, notificationService *services.NotificationService) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Printf("Panic in nightly import: %v", r)
-			// Could send admin notification here
-		}
-	}()
-
-	log.Println("Starting nightly automated import...")
-
-	result, err := freeDataService.ImportWithChangeDetection()
-	if err != nil {
-		log.Printf("Nightly import failed: %v", err)
-		// Send notification about failure
-		failedResult := &models.ImportResult{
-			Status:   "failed",
-			Duration: result.Duration,
-			Error:    err,
-		}
-		failedHistory := &models.ImportHistory{
-			SourceURL:    "automated-import",
-			ImportedAt:   time.Now(),
-			RecordCount:  0,
-			ContentHash:  "",
-			Status:       "failed",
-			ErrorMessage: err.Error(),
-			DurationMs:   int(result.Duration.Milliseconds()),
-		}
-		notificationService.SendImportReport(failedResult, failedHistory)
-		return
-	}
-
-	log.Printf("Nightly import completed: %s (%d records added, duration: %v)",
-		result.Status, result.RecordsAdded, result.Duration)
-
-	// Send success notification if records were added
-	if result.Status == "updated" && result.RecordsAdded > 0 {
-		// Create a mock history entry for notification
-		history := &models.ImportHistory{
-			SourceURL:   "automated-import",
-			ImportedAt:  time.Now(),
-			RecordCount: result.RecordsAdded,
-			Status:      "completed",
-			DurationMs:  int(result.Duration.Milliseconds()),
-		}
-		notificationService.SendImportReport(result, history)
-	}
-}
 
 func main() {
 	// Initialize database
@@ -163,24 +113,23 @@ func main() {
 	e.GET("/export/csv", handler.ExportCSV)
 
 	// Setup free data import routes
-	freeDataService := services.NewFreeDataService(db)
 	services.SetupFreeDataRoutes(e, db)
 
 	// Initialize notification service (configure as needed)
-	notificationService := services.NewNotificationService(
-		"", 587, "noreply@layofftracker.com",
-		[]string{"admin@example.com"}, "", "")
+	// notificationService := services.NewNotificationService(
+	// 	"", 587, "noreply@layofftracker.com",
+	// 	[]string{"admin@example.com"}, "", "")
 
 	// Start automated nightly import scheduler
-	go func() {
-		log.Println("Starting automated nightly import scheduler...")
-		ticker := time.NewTicker(24 * time.Hour)
-		defer ticker.Stop()
+	// go func() {
+	// 	log.Println("Starting automated nightly import scheduler...")
+	// 	ticker := time.NewTicker(24 * time.Hour)
+	// 	defer ticker.Stop()
 
-		for range ticker.C {
-			performNightlyImport(freeDataService, notificationService)
-		}
-	}()
+	// 	for range ticker.C {
+	// 		performNightlyImport(freeDataService, notificationService)
+	// 	}
+	// }()
 
 	// Health check
 	e.GET("/ping", func(c echo.Context) error {
@@ -241,5 +190,5 @@ func main() {
 	}
 
 	log.Printf("Server starting on port %s", port)
-	log.Fatal(e.Start(":" + port))
+	log.Fatal(e.Start("0.0.0.0:" + port))
 }

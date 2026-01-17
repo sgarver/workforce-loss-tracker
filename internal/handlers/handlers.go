@@ -112,22 +112,16 @@ func (h *Handler) Tracker(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	industries, err := h.layoffService.GetIndustries()
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-	}
-
 	// Render tracker content
 	var contentBuf bytes.Buffer
 	data := map[string]interface{}{
 		"Layoffs":    layoffs.Data,
 		"Pagination": layoffs,
-		"Industries": industries,
 		"Filters":    params,
 	}
 	err = h.templates.ExecuteTemplate(&contentBuf, "tracker.html", data)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return c.HTML(http.StatusInternalServerError, "Error rendering template: "+err.Error())
 	}
 
 	layoutData := map[string]interface{}{
