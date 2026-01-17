@@ -6,7 +6,7 @@
 </div>
 
     <!-- Filters -->
-    <details class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700 mb-8">
+    <details class="card-bg p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700 mb-8">
         <summary class="text-lg font-semibold text-gray-900 dark:text-white mb-4 cursor-pointer">🔍 Filters</summary>
         <form id="filter-form" method="GET" class="space-y-4">
              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -76,7 +76,7 @@
     </details>
 
     <!-- Results -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="card-bg rounded-lg shadow border border-gray-200 dark:border-gray-700">
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
                 📊 Layoffs ({{.Pagination.Total}} found)
@@ -88,7 +88,7 @@
 
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead class="bg-gray-50 dark:bg-gray-700">
+                <thead class="table-bg">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Company</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Industry</th>
@@ -98,9 +98,9 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Source</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody class="card-bg divide-y divide-gray-200 dark:divide-gray-700">
                     {{range .Layoffs}}
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <tr class="hover:table-bg">
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
                                 <div class="flex-shrink-0 h-10 w-10 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-full">
