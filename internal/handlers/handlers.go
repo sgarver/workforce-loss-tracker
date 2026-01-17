@@ -114,13 +114,24 @@ func (h *Handler) Tracker(c echo.Context) error {
 }
 
 func (h *Handler) LayoffDetail(c echo.Context) error {
-	layoutData := map[string]interface{}{
-		"Title":      "Tech Layoff Tracker - Layoff Details",
-		"ActivePage": "",
-		"Content":    template.HTML("<p>Layoff detail page coming soon.</p>"),
+	layoffID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid layoff ID"})
 	}
 
-	return c.Render(http.StatusOK, "layout.html", layoutData)
+	layoff, err := h.layoffService.GetLayoff(layoffID)
+	if err != nil {
+		if err.Error() == "layoff not found" {
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "Layoff not found"})
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	data := map[string]interface{}{
+		"Layoff": layoff,
+	}
+
+	return c.Render(http.StatusOK, "layoff_detail", data)
 }
 
 func (h *Handler) CreateLayoff(c echo.Context) error {
