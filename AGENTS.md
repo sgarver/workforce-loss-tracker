@@ -29,6 +29,18 @@ Whenever changes are made to Go files in this project, follow this process:
    - Update the completed task in `todo.md` and update the timestamp.
    - Ask the user about the next task.
 
+## Post-Change Checklist (For AI Responses)
+After making changes, include this checklist in responses to ensure protocol adherence:
+
+- [ ] **Build Success**: `go build -o layoff-tracker .` - No errors.
+- [ ] **Run Tests**: `go test ./...` - All pass.
+- [ ] **Restart Site**: Server stopped, restarted, `curl -s http://127.0.0.1:8080/ping` returns "pong".
+- [ ] **Curl Verification**: Specific curls to verify changes (e.g., endpoints, UI elements).
+- [ ] **Manual Verification Prompt**: Asked user to verify before committing.
+- [ ] **User Approval**: Confirmed approval before commit.
+- [ ] **Commit Done**: Changes committed with descriptive message.
+- [ ] **Todo Updated**: `todo.md` updated if task completed.
+
 ## Task Management
 
 - All current and ongoing tasks are stored in `todo.md`.
