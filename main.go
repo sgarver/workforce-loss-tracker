@@ -180,6 +180,11 @@ func main() {
 		}
 	}()
 
+	// Health check
+	e.GET("/ping", func(c echo.Context) error {
+		return c.String(http.StatusOK, "pong")
+	})
+
 	// API routes
 	api := e.Group("/api")
 	api.GET("/stats", func(c echo.Context) error {
