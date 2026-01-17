@@ -1,0 +1,50 @@
+<!-- Profile Page -->
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Your Profile</h1>
+        <p class="mt-2 text-gray-600 dark:text-gray-400">Manage your account settings and alert preferences</p>
+    </div>
+
+    <!-- Profile Info -->
+    <div class="card-bg p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700 mb-8">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Account Information</h2>
+        <div class="flex items-center space-x-4">
+            {{if .User.AvatarURL}}
+            <img src="{{.User.AvatarURL}}" alt="Avatar" class="w-16 h-16 rounded-full">
+            {{end}}
+            <div>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{.User.Name}}</h3>
+                <p class="text-gray-600 dark:text-gray-400">{{.User.Email}}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Signed in with {{.User.Provider}}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Preferences -->
+    <div class="card-bg p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Alert Preferences</h2>
+        <form method="POST" action="/profile" class="space-y-6">
+            <div>
+                <label class="flex items-center">
+                    <input type="checkbox" name="email_alerts_enabled" {{if .Prefs.EmailAlertsEnabled}}checked{{end}}
+                           class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500">
+                    <span class="ml-2 text-gray-700 dark:text-gray-300">Enable email alerts</span>
+                </label>
+            </div>
+
+            <div>
+                <label class="flex items-center">
+                    <input type="checkbox" name="alert_new_data" {{if .Prefs.AlertNewData}}checked{{end}}
+                           class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500">
+                    <span class="ml-2 text-gray-700 dark:text-gray-300">Alert me when new layoff data is imported</span>
+                </label>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Receive daily emails if new data is available</p>
+            </div>
+
+            <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                Save Preferences
+            </button>
+        </form>
+    </div>
+</div>
