@@ -26,7 +26,7 @@ Testing
 - [ ] add an alerting system for issues, site down (ping page?)
 
 Social features
-- [ ] add membership system with federation from common providers
+- [x] add membership system with federation from common providers
 - [x] add commenting system
 
 Getting Production Ready
