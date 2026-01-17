@@ -157,11 +157,23 @@ func (h *Handler) LayoffDetail(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
+	// Render layoff detail content
+	var contentBuf bytes.Buffer
 	data := map[string]interface{}{
 		"Layoff": layoff,
 	}
+	err = h.templates.ExecuteTemplate(&contentBuf, "layoff_detail.html", data)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
 
-	return c.Render(http.StatusOK, "layoff_detail", data)
+	layoutData := map[string]interface{}{
+		"Title":      fmt.Sprintf("%s Layoff Details", layoff.Company.Name),
+		"ActivePage": "",
+		"Content":    template.HTML(contentBuf.String()),
+	}
+
+	return c.Render(http.StatusOK, "layout.html", layoutData)
 }
 
 func (h *Handler) NewLayoff(c echo.Context) error {
