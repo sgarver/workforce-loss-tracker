@@ -34,3 +34,6 @@ layoff_tracker.db*
 # OS files
 .DS_Store
 Thumbs.db
+
+# Environment variables
+.env
