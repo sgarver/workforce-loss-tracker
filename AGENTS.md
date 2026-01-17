@@ -2,8 +2,6 @@
 
 ## Process for Making Changes to Go Files
 
-**CRITICAL: Never commit changes without explicit user approval after manual verification. Always prompt the user to verify changes before proceeding to step 5.**
-
 Whenever changes are made to Go files in this project, follow this process:
 
 1. **Verify Build Success**:
@@ -25,7 +23,7 @@ Whenever changes are made to Go files in this project, follow this process:
    - **DO NOT PROCEED WITHOUT EXPLICIT USER APPROVAL**. Always wait for the user to explicitly say "commit" (or similar confirmation like "approved") before advancing to step 5. Do not infer approval from phrases like "please proceed" or "looks good"—require direct confirmation.
 
 5. **Commit to Git**:
-   - **ONLY AFTER USER SAYS "COMMIT"**: Do not commit until the user explicitly says "commit" (or equivalent). This prevents premature commits.
+   - **ONLY AFTER USER SAYS "COMMIT" FOR ANY CHANGE**: Do not commit any changes (Go or otherwise) until the user explicitly says "commit" (or equivalent). This prevents premature commits.
    - Commit the changes: `git add .` and `git commit -m "Description of changes"`
    - Update the completed task in `todo.md` and update the timestamp.
    - Ask the user about the next task.
