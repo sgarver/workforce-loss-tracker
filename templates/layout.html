@@ -179,6 +179,9 @@
                     </button>
                     {{if .User}}
                     <span class="text-gray-700 dark:text-gray-300 text-sm">Welcome, {{.User.Name}}!</span>
+                    <a href="/profile" class="text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
+                        Profile
+                    </a>
                     <a href="/auth/logout" class="text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
                         Logout
                     </a>

@@ -212,7 +212,7 @@ func main() {
 
 		return c.Redirect(http.StatusSeeOther, "/")
 	})
-	e.POST("/auth/logout", func(c echo.Context) error {
+	e.GET("/auth/logout", func(c echo.Context) error {
 		sess, _ := session.Get("session", c)
 		delete(sess.Values, "user_id")
 		sess.Save(c.Request(), c.Response())
