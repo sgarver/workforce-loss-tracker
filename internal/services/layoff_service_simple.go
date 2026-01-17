@@ -310,6 +310,70 @@ func (s *LayoffService) GetIndustries() ([]*models.Industry, error) {
 
 	var industries []*models.Industry
 	for rows.Next() {
+		var industry models.Industry
+		err := rows.Scan(&industry.ID, &industry.Name, &industry.Slug, &industry.CreatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning industry: %w", err)
+		}
+		industries = append(industries, &industry)
+	}
+
+	return industries, nil
+}
+
+// Comment-related methods
+func (s *LayoffService) GetComments(layoffID int) ([]*models.Comment, error) {
+	query := `
+		SELECT id, layoff_id, author_name, author_email, content, created_at, updated_at
+		FROM comments
+		WHERE layoff_id = $1
+		ORDER BY created_at ASC`
+
+	rows, err := s.db.Query(query, layoffID)
+	if err != nil {
+		return nil, fmt.Errorf("error querying comments: %w", err)
+	}
+	defer rows.Close()
+
+	var comments []*models.Comment
+	for rows.Next() {
+		var comment models.Comment
+		var email sql.NullString
+		err := rows.Scan(&comment.ID, &comment.LayoffID, &comment.AuthorName, &email, &comment.Content, &comment.CreatedAt, &comment.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning comment: %w", err)
+		}
+		if email.Valid {
+			comment.AuthorEmail = email.String
+		}
+		comments = append(comments, &comment)
+	}
+
+	return comments, nil
+}
+
+func (s *LayoffService) CreateComment(comment *models.Comment) error {
+	query := `
+		INSERT INTO comments (layoff_id, author_name, author_email, content)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, created_at, updated_at`
+
+	var email *string
+	if comment.AuthorEmail != "" {
+		email = &comment.AuthorEmail
+	}
+
+	err := s.db.QueryRow(query, comment.LayoffID, comment.AuthorName, email, comment.Content).Scan(&comment.ID, &comment.CreatedAt, &comment.UpdatedAt)
+	if err != nil {
+		return fmt.Errorf("error creating comment: %w", err)
+	}
+
+	return nil
+}
+	defer rows.Close()
+
+	var industries []*models.Industry
+	for rows.Next() {
 		industry := &models.Industry{}
 		err := rows.Scan(&industry.ID, &industry.Name, &industry.Slug, &industry.CreatedAt)
 		if err != nil {
