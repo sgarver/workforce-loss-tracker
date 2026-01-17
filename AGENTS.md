@@ -2,6 +2,8 @@
 
 ## Process for Making Changes to Go Files
 
+**CRITICAL: Never commit changes without explicit user approval after manual verification. Always prompt the user to verify changes before proceeding to step 5.**
+
 Whenever changes are made to Go files in this project, follow this process:
 
 1. **Verify Build Success**:
@@ -19,11 +21,11 @@ Whenever changes are made to Go files in this project, follow this process:
    - Use curl to verify that the changes fix the specific issue (e.g., curl relevant endpoints or pages)
 
 4. **Manual Verification**:
-   - Prompt the user to perform manual verification of the changes.
-   - Wait for user approval before proceeding.
+   - **MANDATORY**: Prompt the user to perform manual verification of the changes.
+   - **DO NOT PROCEED WITHOUT EXPLICIT USER APPROVAL**. Wait for confirmation before advancing to step 5.
 
 5. **Commit to Git**:
-   - Once approved, commit the changes: `git add .` and `git commit -m "Description of changes"`
+   - **ONLY AFTER USER APPROVAL**: Commit the changes: `git add .` and `git commit -m "Description of changes"`
    - Ask the user about the next task.
 
 ## Task Management
