@@ -9,8 +9,11 @@ For the tracker page
 
 Other site changes
 - [x] add FAQ page
-- [ ] evaluate report layoff button feature value
+- [x] evaluate report layoff button feature value (implemented and working)
 - [x] finish COMMUNITY links
+- [x] fix dashboard HTML escaping/rendering issue
+- [x] skip initial data import on startup
+- [x] set user-submitted layoffs to "pending" status for review
 - [ ] change colors and font style to more urban and serious looking
 - [ ] add banner image
 
@@ -25,6 +28,7 @@ Social features
 - [ ] add commenting system
 
 Getting Production Ready
+- [ ] add admin functionality to review and approve submissions
 - [ ] determine domain name and how to host
 - [ ] determine deployment system
 - [ ] optimize for SEO

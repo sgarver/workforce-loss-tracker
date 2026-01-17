@@ -15,9 +15,14 @@ func setupTestDB(t *testing.T) *sql.DB {
 	}
 
 	// Run migrations
-	if err := db.RunMigrations("../../../../migrations"); err != nil {
+	if err := db.RunMigrations("../../migrations"); err != nil {
 		t.Fatalf("Failed to run migrations: %v", err)
 	}
+
+	// Clear seed data for clean test environment
+	db.Exec("DELETE FROM layoffs")
+	db.Exec("DELETE FROM companies")
+	db.Exec("DELETE FROM sponsored_listings")
 
 	return db.DB
 }
