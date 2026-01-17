@@ -72,49 +72,60 @@
 
     <!-- Inline critical CSS for theme -->
     <style>
-        [data-theme="light"] body {
+        body {
+            background-color: white !important;
+            color: #333 !important;
+            transition: background-color 0s !important;
+        }
+        html[data-theme="light"] body {
             background-color: white !important;
             color: #333 !important;
         }
-        [data-theme="dark"] body {
+        html[data-theme="dark"] body {
             background-color: #111827 !important;
             color: #f9fafb !important;
         }
-        [data-theme="light"] nav {
+        html[data-theme="light"] nav {
             background-color: rgba(255, 255, 255, 0.8) !important;
         }
-        [data-theme="dark"] nav {
+        html[data-theme="dark"] nav {
             background-color: rgba(17, 24, 39, 0.8) !important;
         }
-        [data-theme="light"] footer {
+        html[data-theme="light"] footer {
             background-color: #f9fafb !important;
         }
-        [data-theme="dark"] footer {
+        html[data-theme="dark"] footer {
             background-color: #1f2937 !important;
         }
-        [data-theme="light"] .hero {
+        html[data-theme="light"] .hero {
             background: linear-gradient(to bottom right, #eff6ff, #ffffff, #eff6ff) !important;
         }
-        [data-theme="dark"] .hero {
+        html[data-theme="dark"] .hero {
             background: linear-gradient(to bottom right, #111827, #1f2937, #111827) !important;
         }
-        [data-theme="light"] .section-bg {
+        html[data-theme="light"] .section-bg {
             background-color: white !important;
         }
-        [data-theme="dark"] .section-bg {
+        html[data-theme="dark"] .section-bg {
             background-color: #111827 !important;
         }
-        [data-theme="light"] .card-bg {
+        html[data-theme="light"] .card-bg {
             background-color: white !important;
         }
-        [data-theme="dark"] .card-bg {
+        html[data-theme="dark"] .card-bg {
             background-color: #1f2937 !important;
         }
-        [data-theme="light"] .table-bg {
+        html[data-theme="light"] .table-bg {
             background-color: #f9fafb !important;
         }
-        [data-theme="dark"] .table-bg {
+        html[data-theme="dark"] .table-bg {
             background-color: #111827 !important;
+        }
+        html[data-theme="light"] details {
+            background-color: white !important;
+        }
+        html[data-theme="dark"] details {
+            background-color: #1f2937 !important;
         }
     </style>
 
@@ -261,18 +272,18 @@
             const html = document.documentElement;
             const body = document.body;
 
-            if (savedTheme === 'light') {
-                html.setAttribute('data-theme', 'light');
-                html.classList.remove('dark');
-                body.style.setProperty('background-color', 'white', 'important');
-                themeIcon.textContent = '🌙';
-            } else {
+            if (savedTheme === 'dark') {
                 html.setAttribute('data-theme', 'dark');
                 html.classList.add('dark');
                 body.style.setProperty('background-color', '#111827', 'important');
                 themeIcon.textContent = '☀️';
-                if (savedTheme !== 'dark') {
-                    localStorage.setItem('theme', 'dark');
+            } else {
+                html.setAttribute('data-theme', 'light');
+                html.classList.remove('dark');
+                body.style.setProperty('background-color', 'white', 'important');
+                themeIcon.textContent = '🌙';
+                if (savedTheme !== 'light') {
+                    localStorage.setItem('theme', 'light');
                 }
             }
         });
