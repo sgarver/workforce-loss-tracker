@@ -1,0 +1,435 @@
+<!-- Hero Section -->
+<section class="relative overflow-hidden bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div class="absolute inset-0 bg-grid-pattern opacity-5"></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
+        <div class="text-center animate-fade-in">
+            <h1 class="text-4xl sm:text-6xl font-bold text-gray-900 dark:text-white mb-6">
+                Track Tech Industry
+                <span class="bg-gradient-to-r from-primary-600 to-primary-700 bg-clip-text text-transparent">Layoffs</span>
+            </h1>
+            <p class="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
+                Real-time tracking of tech industry layoffs with data from WARN Act filings.
+                Stay informed about workforce changes across major technology companies.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="/tracker" class="bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-lg font-medium transition-all hover:shadow-lg">
+                    View All Layoffs
+                </a>
+                <a href="/export/csv" class="border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-8 py-3 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    Export Data
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Statistics Section -->
+<section class="py-16 bg-white dark:bg-gray-900">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">Current Layoff Statistics</h2>
+            <p class="text-gray-600 dark:text-gray-300">Real-time data from WARN Act filings across the United States</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+             <div class="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 p-6 rounded-xl border border-red-200 dark:border-red-800/30">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-red-600 dark:text-red-400 mb-1">Layoffs This Year</p>
+                        <p class="text-3xl font-bold text-red-700 dark:text-red-300">{{.Stats.TotalLayoffsFormatted}}</p>
+                        <p class="text-xs text-red-500 dark:text-red-400 mt-1">12-month total</p>
+                    </div>
+                    <div class="w-12 h-12 bg-red-500 rounded-lg flex items-center justify-center">
+                        <span class="text-white text-xl">📉</span>
+                    </div>
+                </div>
+            </div>
+
+             <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-6 rounded-xl border border-blue-200 dark:border-blue-800/30">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-blue-600 dark:text-blue-400 mb-1">Companies Affected</p>
+                        <p class="text-3xl font-bold text-blue-700 dark:text-blue-300">{{.Stats.TotalCompaniesFormatted}}</p>
+                        <p class="text-xs text-blue-500 dark:text-blue-400 mt-1">This year</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
+                        <span class="text-white text-xl">🏢</span>
+                    </div>
+                </div>
+            </div>
+
+             <div class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 p-6 rounded-xl border border-purple-200 dark:border-purple-800/30">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-purple-600 dark:text-purple-400 mb-1">Employees Affected</p>
+                        <p class="text-3xl font-bold text-purple-700 dark:text-purple-300">{{.Stats.TotalEmployeesFormatted}}</p>
+                        <p class="text-xs text-purple-500 dark:text-purple-400 mt-1">Past 12 months</p>
+                    </div>
+                    <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
+                        <span class="text-white text-xl">👥</span>
+                    </div>
+                </div>
+            </div>
+
+             <div class="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 p-6 rounded-xl border border-orange-200 dark:border-orange-800/30">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-orange-600 dark:text-orange-400 mb-1">Layoffs This Quarter</p>
+                        <p class="text-3xl font-bold text-orange-700 dark:text-orange-300">{{.Stats.RecentLayoffsFormatted}}</p>
+                        <p class="text-xs text-orange-500 dark:text-orange-400 mt-1">{{.CurrentQuarter}}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center">
+                        <span class="text-white text-xl">📅</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Import Status Indicator -->
+        <div class="mt-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">Automated Data Updates</h3>
+                    <p class="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                        System automatically checks for new WARN data nightly and imports updates.
+                        <span class="font-medium">Last check: {{.LastImportTime}}</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+</section>
+
+<!-- Charts Section -->
+<section class="py-16 bg-white dark:bg-gray-900">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">Layoff Trends & Insights</h2>
+            <p class="text-gray-600 dark:text-gray-300">Visual analysis of layoff patterns and industry distribution</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Trend Chart -->
+            <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Weekly Layoff Trends</h3>
+                    <div class="flex space-x-2">
+                        <button id="oneMonthBtn" class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">1 Month</button>
+                        <button id="threeMonthBtn" class="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">3 Months</button>
+                        <button id="sixMonthBtn" class="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">6 Months</button>
+                    </div>
+                </div>
+                <div class="h-80">
+                    <canvas id="monthlyTrendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Industry Breakdown Chart -->
+            <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Layoffs by Industry</h3>
+                <div class="h-80">
+                    <canvas id="industryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+// Global chart variables
+let monthlyChart = null;
+let industryChart = null;
+
+// Load chart data from API
+let chartData = { monthlyTrend: [], industryBreakdown: [] };
+let currentMonths = 1; // Default to 1 month
+
+async function loadChartData(months = currentMonths) {
+    try {
+        const response = await fetch(`/api/stats?months=${months}`);
+        if (response.ok) {
+            const stats = await response.json();
+            chartData.monthlyTrend = stats.monthly_trend || [];
+            chartData.industryBreakdown = stats.industry_breakdown || [];
+            renderCharts();
+        } else {
+            console.error('Failed to load chart data:', response.status, response.statusText);
+        }
+    } catch (error) {
+        console.error('Error loading chart data:', error);
+        // Show user-friendly error message
+        const chartContainer = document.querySelector('.grid.grid-cols-1.lg\\:grid-cols-2');
+        if (chartContainer) {
+            chartContainer.innerHTML = '<div class="col-span-2 text-center py-8"><p class="text-red-600 dark:text-red-400">Error loading chart data. Please try refreshing the page.</p></div>';
+        }
+    }
+}
+
+function destroyCharts() {
+    if (monthlyChart) {
+        monthlyChart.destroy();
+        monthlyChart = null;
+    }
+    if (industryChart) {
+        industryChart.destroy();
+        industryChart = null;
+    }
+}
+
+function renderCharts() {
+    // Destroy existing charts to prevent canvas reuse errors
+    destroyCharts();
+
+    // Monthly Trend Chart
+    const monthlyTrendCanvas = document.getElementById('monthlyTrendChart');
+    if (!monthlyTrendCanvas) {
+        console.error('Monthly trend chart canvas not found');
+        return;
+    }
+
+    const monthlyCtx = monthlyTrendCanvas.getContext('2d');
+    const monthlyTrendData = chartData.monthlyTrend;
+
+    try {
+        monthlyChart = new Chart(monthlyCtx, {
+            type: 'line',
+            data: {
+                labels: monthlyTrendData.map(item => {
+                    const [year, week] = item.month.split('-');
+                    return `Week ${week}`;
+                }),
+                datasets: [{
+                    label: 'Layoffs',
+                    data: monthlyTrendData.map(item => item.count),
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }, {
+                    label: 'Employees Affected',
+                    data: monthlyTrendData.map(item => item.employees),
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    yAxisID: 'y1'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                label += context.parsed.y;
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Number of Layoffs'
+                        },
+                        ticks: {
+                            color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#d1d5db' : '#374151'
+                        },
+                        grid: {
+                            color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#374151' : '#e5e7eb'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Employees Affected'
+                        },
+                        ticks: {
+                            color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#d1d5db' : '#374151'
+                        },
+                        grid: {
+                            drawOnChartArea: false,
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#d1d5db' : '#374151'
+                        },
+                        grid: {
+                            color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#374151' : '#e5e7eb'
+                        }
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error creating monthly trend chart:', error);
+    }
+
+    // Industry Breakdown Chart
+    const industryChartEl = document.getElementById('industryChart');
+    if (!industryChartEl) {
+        console.error('Industry chart canvas not found');
+        return;
+    }
+
+    const industryCtx = industryChartEl.getContext('2d');
+    if (!industryCtx) {
+        console.error('Could not get 2D context for industry chart');
+        return;
+    }
+
+    const industryData = chartData.industryBreakdown;
+
+    try {
+        industryChart = new Chart(industryCtx, {
+        type: 'doughnut',
+        data: {
+            labels: industryData.map(item => item.industry),
+            datasets: [{
+                data: industryData.map(item => item.employees),
+                backgroundColor: [
+                    '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
+                    '#06b6d4', '#f97316', '#84cc16', '#ec4899', '#6366f1',
+                    '#14b8a6', '#f43f5e', '#8b5a2b', '#6b7280'
+                ],
+                borderWidth: 2,
+                borderColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#1f2937' : '#ffffff',
+                hoverBorderWidth: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#d1d5db' : '#374151',
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${label}: ${value.toLocaleString()} employees (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+        });
+    } catch (error) {
+        console.error('Error creating industry chart:', error);
+    }
+}
+
+// Button event listeners for time period selection
+document.getElementById('oneMonthBtn').addEventListener('click', () => {
+    setActiveButton('oneMonthBtn');
+    loadChartData(1);
+});
+
+document.getElementById('threeMonthBtn').addEventListener('click', () => {
+    setActiveButton('threeMonthBtn');
+    loadChartData(3);
+});
+
+document.getElementById('sixMonthBtn').addEventListener('click', () => {
+    setActiveButton('sixMonthBtn');
+    loadChartData(6);
+});
+
+function setActiveButton(activeId) {
+    // Reset all buttons
+    ['oneMonthBtn', 'threeMonthBtn', 'sixMonthBtn'].forEach(id => {
+        const btn = document.getElementById(id);
+        btn.className = 'px-3 py-1 text-sm bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors';
+    });
+
+    // Set active button
+    const activeBtn = document.getElementById(activeId);
+    activeBtn.className = 'px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors';
+}
+
+// Load charts when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    setActiveButton('oneMonthBtn'); // Set default active button
+    loadChartData(1);
+});
+</script>
+
+<!-- CTA Section -->
+<section class="py-16 bg-primary-600">
+    <div class="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+        <h2 class="text-3xl font-bold text-white mb-4">Ready to Explore the Data?</h2>
+        <p class="text-primary-100 mb-8 text-lg">Browse our comprehensive database of tech industry layoffs or contribute new information.</p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="/tracker" class="bg-white text-primary-600 px-8 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors">
+                Browse Layoffs
+            </a>
+            <a href="/layoffs/new" class="border border-primary-300 text-white px-8 py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors">
+                Report New Layoff
+            </a>
+        </div>
+    </div>
+</section>
+
+<script>
+// Update chart colors on theme change
+function updateChartColors() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const textColor = isDark ? '#d1d5db' : '#374151';
+    const gridColor = isDark ? '#374151' : '#e5e7eb';
+
+    // Update monthly trend chart
+    if (monthlyChart) {
+        monthlyChart.options.scales.y.ticks.color = textColor;
+        monthlyChart.options.scales.y.grid.color = gridColor;
+        monthlyChart.options.scales.y1.ticks.color = textColor;
+        monthlyChart.options.scales.x.ticks.color = textColor;
+        monthlyChart.options.scales.x.grid.color = gridColor;
+        monthlyChart.options.plugins.legend.labels.color = textColor;
+        monthlyChart.update();
+    }
+
+    // Update industry chart
+    if (industryChart) {
+        industryChart.options.plugins.legend.labels.color = textColor;
+        industryChart.update();
+    }
+}
+
+// Listen for theme changes
+document.addEventListener('themeChange', updateChartColors);
+</script>

@@ -1,0 +1,103 @@
+<link href="/css/styles.css" rel="stylesheet">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Report New Layoff</h1>
+        <p class="mt-2 text-gray-600 dark:text-gray-400">Help us keep community informed by submitting layoff information</p>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <form method="POST" action="/layoffs" class="p-6 space-y-6">
+            <!-- Layoff Details -->
+            <div class="space-y-4">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white">Layoff Information</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="company_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Company Name *
+                        </label>
+                        <input type="text" id="company_name" name="company_name" required
+                               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                               placeholder="Enter company name">
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            Enter the full company name
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <label for="employees_affected" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Employees Affected *
+                        </label>
+                        <input type="number" id="employees_affected" name="employees_affected" required min="1"
+                               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="layoff_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Layoff Date *
+                        </label>
+                        <input type="date" id="layoff_date" name="layoff_date" required
+                               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white">
+                    </div>
+
+                    <div>
+                        <label for="source_url" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Source URL
+                        </label>
+                        <input type="url" id="source_url" name="source_url" placeholder="https://news-article.com"
+                               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Additional Context
+                    </label>
+                    <textarea id="notes" name="notes" rows="4" 
+                              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                              placeholder="Provide any additional context about layoff (reason, departments affected, etc.)"></textarea>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
+                <div class="text-sm text-gray-500 dark:text-gray-400">
+                    * Required fields
+                </div>
+                <div class="space-x-4">
+                    <a href="/tracker" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+                        Cancel
+                    </a>
+                    <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-md text-sm font-medium">
+                        Submit Layoff Report
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Guidelines -->
+    <div class="mt-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-3">📋 Submission Guidelines</h3>
+        <ul class="space-y-2 text-sm text-blue-800 dark:text-blue-200">
+            <li>• Please only submit verified layoff information from reliable sources</li>
+            <li>• Include a source URL whenever possible to help us verify information</li>
+            <li>• Be specific about number of employees affected when known</li>
+            <li>• Provide context about reason for layoffs if available (restructuring, funding issues, etc.)</li>
+            <li>• All submissions are reviewed before being published to tracker</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set max date to today
+    const layoffDateInput = document.getElementById('layoff_date');
+    const today = new Date().toISOString().split('T')[0];
+    layoffDateInput.max = today;
+});
+</script>
