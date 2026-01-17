@@ -1,7 +1,8 @@
 <!-- Hero Section -->
-<section class="relative overflow-hidden bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+<section class="hero relative overflow-hidden">
     <div class="absolute inset-0 bg-grid-pattern opacity-5"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
+        <img src="https://images.unsplash.com/photo-1518709268805-4e9042af2176?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Tech Layoff Tracker Banner" class="w-full h-48 object-cover rounded-lg mb-8">
         <div class="text-center animate-fade-in">
             <h1 class="text-4xl sm:text-6xl font-bold text-gray-900 dark:text-white mb-6">
                 Track Tech Industry
@@ -23,91 +24,7 @@
     </div>
 </section>
 
-<!-- Statistics Section -->
-<section class="py-16 bg-white dark:bg-gray-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12">
-            <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">Current Layoff Statistics</h2>
-            <p class="text-gray-600 dark:text-gray-300">Real-time data from WARN Act filings across the United States</p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-             <div class="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 p-6 rounded-xl border border-red-200 dark:border-red-800/30">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-red-600 dark:text-red-400 mb-1">Layoffs This Year</p>
-                        <p class="text-3xl font-bold text-red-700 dark:text-red-300">{{.Stats.TotalLayoffsFormatted}}</p>
-                        <p class="text-xs text-red-500 dark:text-red-400 mt-1">12-month total</p>
-                    </div>
-                    <div class="w-12 h-12 bg-red-500 rounded-lg flex items-center justify-center">
-                        <span class="text-white text-xl">📉</span>
-                    </div>
-                </div>
-            </div>
-
-             <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-6 rounded-xl border border-blue-200 dark:border-blue-800/30">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-blue-600 dark:text-blue-400 mb-1">Companies Affected</p>
-                        <p class="text-3xl font-bold text-blue-700 dark:text-blue-300">{{.Stats.TotalCompaniesFormatted}}</p>
-                        <p class="text-xs text-blue-500 dark:text-blue-400 mt-1">This year</p>
-                    </div>
-                    <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
-                        <span class="text-white text-xl">🏢</span>
-                    </div>
-                </div>
-            </div>
-
-             <div class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 p-6 rounded-xl border border-purple-200 dark:border-purple-800/30">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-purple-600 dark:text-purple-400 mb-1">Employees Affected</p>
-                        <p class="text-3xl font-bold text-purple-700 dark:text-purple-300">{{.Stats.TotalEmployeesFormatted}}</p>
-                        <p class="text-xs text-purple-500 dark:text-purple-400 mt-1">Past 12 months</p>
-                    </div>
-                    <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
-                        <span class="text-white text-xl">👥</span>
-                    </div>
-                </div>
-            </div>
-
-             <div class="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 p-6 rounded-xl border border-orange-200 dark:border-orange-800/30">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-orange-600 dark:text-orange-400 mb-1">Layoffs This Quarter</p>
-                        <p class="text-3xl font-bold text-orange-700 dark:text-orange-300">{{.Stats.RecentLayoffsFormatted}}</p>
-                        <p class="text-xs text-orange-500 dark:text-orange-400 mt-1">{{.CurrentQuarter}}</p>
-                    </div>
-                    <div class="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center">
-                        <span class="text-white text-xl">📅</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Import Status Indicator -->
-        <div class="mt-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                    </svg>
-                </div>
-                <div class="ml-3">
-                    <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">Automated Data Updates</h3>
-                    <p class="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                        System automatically checks for new WARN data nightly and imports updates.
-                        <span class="font-medium">Last check: {{.LastImportTime}}</span>
-                    </p>
-                </div>
-            </div>
-        </div>
-        </div>
-    </div>
-</section>
-
-<!-- Charts Section -->
-<section class="py-16 bg-white dark:bg-gray-900">
+<section class="section-bg py-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12">
             <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">Layoff Trends & Insights</h2>
