@@ -3,11 +3,18 @@
 # Usage: ./staging-tunnel.sh
 # This creates an SSH tunnel to access the staging environment at http://localhost:3000
 
-# Configuration
-REMOTE_HOST="REDACTED_SERVER_IP"
-REMOTE_USER="linuxuser"
-LOCAL_PORT=3000
-REMOTE_PORT=3000
+# Load configuration
+if [[ -f ".server-config" ]]; then
+    source .server-config
+else
+    echo "❌ Error: .server-config file not found!"
+    echo "Please create .server-config with your server details:"
+    echo "REMOTE_HOST=your-server-ip"
+    echo "REMOTE_USER=your-username"
+    echo "STAGING_LOCAL_PORT=3000"
+    echo "STAGING_REMOTE_PORT=3000"
+    exit 1
+fi
 
 echo "🚀 Starting SSH tunnel to staging environment..."
 echo "📍 Remote: $REMOTE_USER@$REMOTE_HOST"
