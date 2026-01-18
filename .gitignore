@@ -32,6 +32,9 @@ go.work.sum
 .env
 .env.local
 
+# Server configuration (contains sensitive IP addresses)
+.server-config
+
 # Database
 *.db
 *.db-wal

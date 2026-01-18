@@ -99,4 +99,4 @@ jobs:
           Triggered by: ${{ github.actor }}
 
           View details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        to: sgarver@gmail.com
+        to: ${{ secrets.EMAIL_RECIPIENT }}
