@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"log"
 	"net/smtp"
 )
 
@@ -35,6 +36,8 @@ func (a *AlertService) SendNewDataAlert(userID int, newCount int, lastUpdated st
 		return fmt.Errorf("failed to get user: %w", err)
 	}
 
+	log.Printf("Sending new data alert to user %d (%s) for %d new layoffs", userID, user.Email, newCount)
+
 	subject := "New Layoff Data Available on Tech Layoff Tracker"
 	body := fmt.Sprintf(`Hi %s,
 
@@ -52,7 +55,13 @@ You received this alert because you opted in for new data notifications. To mana
 Best,
 Tech Layoff Tracker Team`, user.Name, newCount, lastUpdated)
 
-	return a.sendEmail(user.Email, subject, body)
+	err = a.sendEmail(user.Email, subject, body)
+	if err != nil {
+		log.Printf("Failed to send email to user %d: %v", userID, err)
+	} else {
+		log.Printf("Successfully sent email alert to user %d", userID)
+	}
+	return err
 }
 
 func (a *AlertService) sendEmail(to, subject, body string) error {

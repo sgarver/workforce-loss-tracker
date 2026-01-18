@@ -116,6 +116,7 @@ func main() {
 		"templates/industries.html",
 		"templates/faq.html",
 		"templates/layout.html",
+		"templates/profile.html",
 	))
 
 	// Initialize handlers
@@ -308,10 +309,12 @@ func sendNewDataAlerts(layoffService *services.LayoffService, userService *servi
 
 	if currentCount <= lastCount {
 		// No new data
+		log.Printf("No new layoff data found (current: %d, last: %d)", currentCount, lastCount)
 		return
 	}
 
 	newCount := currentCount - lastCount
+	log.Printf("New layoff data detected: %d new records (total: %d)", newCount, currentCount)
 
 	// Get all users who want alerts
 	userIDs, err := userService.GetUsersForNewDataAlerts()
@@ -320,13 +323,19 @@ func sendNewDataAlerts(layoffService *services.LayoffService, userService *servi
 		return
 	}
 
+	log.Printf("Sending alerts to %d users", len(userIDs))
 	for _, userID := range userIDs {
 		err := alertService.SendNewDataAlert(userID, newCount, time.Now().Format("January 2, 2006 at 3:04 PM UTC"))
 		if err != nil {
 			log.Printf("Error sending alert to user %d: %v", userID, err)
+		} else {
+			log.Printf("Alert sent successfully to user %d", userID)
 		}
 	}
 
 	// Update last alerted count
-	userService.SetSystemSetting("last_alerted_layoff_count", strconv.Itoa(currentCount))
+	err = userService.SetSystemSetting("last_alerted_layoff_count", strconv.Itoa(currentCount))
+	if err != nil {
+		log.Printf("Error updating last alerted count: %v", err)
+	}
 }
