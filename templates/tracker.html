@@ -167,6 +167,34 @@
                     </tr>
                     {{end}}
                 </tbody>
-            </table>
-        </div>
-    </div>
+             </table>
+         </div>
+
+         <!-- Pagination -->
+         {{if gt .Pagination.TotalPages 1}}
+         <div class="mt-6 flex items-center justify-between">
+             <div class="text-sm text-gray-700 dark:text-gray-300">
+                 Showing {{len .Layoffs}} of {{.Pagination.Total}} layoffs
+             </div>
+             <div class="flex items-center space-x-2">
+                 {{if gt .Pagination.Page 1}}
+                 <a href="?page={{subtract .Pagination.Page 1}}{{if .Filters.Search}}&search={{.Filters.Search}}{{end}}{{if .Filters.IndustryID}}&industry_id={{.Filters.IndustryID}}{{end}}{{if .Filters.MinEmployees}}&min_employees={{.Filters.MinEmployees}}{{end}}{{if .Filters.MaxEmployees}}&max_employees={{.Filters.MaxEmployees}}{{end}}{{if .Filters.StartDate}}&start_date={{.Filters.StartDate}}{{end}}{{if .Filters.EndDate}}&end_date={{.Filters.EndDate}}{{end}}"
+                    class="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
+                     ← Previous
+                 </a>
+                 {{end}}
+
+                 <span class="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                     Page {{.Pagination.Page}} of {{.Pagination.TotalPages}}
+                 </span>
+
+                 {{if lt .Pagination.Page .Pagination.TotalPages}}
+                 <a href="?page={{add .Pagination.Page 1}}{{if .Filters.Search}}&search={{.Filters.Search}}{{end}}{{if .Filters.IndustryID}}&industry_id={{.Filters.IndustryID}}{{end}}{{if .Filters.MinEmployees}}&min_employees={{.Filters.MinEmployees}}{{end}}{{if .Filters.MaxEmployees}}&max_employees={{.Filters.MaxEmployees}}{{end}}{{if .Filters.StartDate}}&start_date={{.Filters.StartDate}}{{end}}{{if .Filters.EndDate}}&end_date={{.Filters.EndDate}}{{end}}"
+                    class="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
+                     Next →
+                 </a>
+                 {{end}}
+             </div>
+         </div>
+         {{end}}
+     </div>

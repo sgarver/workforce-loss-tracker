@@ -427,11 +427,12 @@ func InferIndustryID(companyName string) sql.NullInt64 {
 
 // MapWARNIndustryToID maps WARN Database industry descriptions to our industry IDs
 func MapWARNIndustryToID(warnIndustry string) sql.NullInt64 {
+	warnIndustry = strings.TrimSpace(warnIndustry)
 	if warnIndustry == "" {
 		return sql.NullInt64{Valid: false}
 	}
 
-	warnIndustry = strings.ToLower(strings.TrimSpace(warnIndustry))
+	warnIndustry = strings.ToLower(warnIndustry)
 
 	// Map WARN industry descriptions to our industry IDs (based on NAICS categories)
 	warnMappings := map[string]int{
