@@ -14,7 +14,8 @@ INSERT INTO industries (name, slug) VALUES
 ('Government', 'government'),
 ('Non-Profit', 'non-profit'),
 ('Agriculture', 'agriculture'),
-('Real Estate', 'real-estate');
+('Real Estate', 'real-estate'),
+('Miscellaneous', 'miscellaneous');
 
 -- Insert sample companies
 INSERT INTO companies (name, employee_count, industry_id, website) VALUES

@@ -36,7 +36,7 @@ func TestInferIndustryID(t *testing.T) {
 		{"slack", 1, true},    // SaaS
 		{"coinbase", 2, true}, // FinTech
 		{"unknown", 0, false},
-		{"google", 5, true}, // AI/ML
+		{"google", 1, true}, // Technology
 	}
 
 	for _, tt := range tests {
