@@ -1,8 +1,8 @@
 
 <!-- Page Header -->
 <div class="mb-8">
-    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Layoff Tracker</h1>
-    <p class="mt-2 text-gray-600 dark:text-gray-400">Browse and filter layoffs by industry</p>
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Workforce Loss Tracker</h1>
+    <p class="mt-2 text-gray-600 dark:text-gray-400">Browse and filter workforce losses by industry</p>
 </div>
 
     <!-- Filters -->
@@ -189,7 +189,7 @@
                         <td colspan="6" class="px-6 py-12 text-center">
                             <div class="text-gray-500 dark:text-gray-400">
                                 <span class="text-2xl mb-2 block">📊</span>
-                                No layoffs found matching your criteria.
+                                No workforce losses found matching your criteria.
                             </div>
                         </td>
                     </tr>
@@ -202,7 +202,7 @@
          {{if gt .Pagination.TotalPages 1}}
          <div class="mt-6 flex items-center justify-between">
              <div class="text-sm text-gray-700 dark:text-gray-300">
-                 Showing {{len .Layoffs}} of {{.Pagination.Total}} layoffs
+                 Showing {{len .Layoffs}} of {{.Pagination.Total}} workforce losses
              </div>
              <div class="flex items-center space-x-2">
                  {{if gt .Pagination.Page 1}}

@@ -19,6 +19,8 @@ Other site changes
  - [x] change colors and font style to more urban and serious looking
   - [x] implement POST /layoffs for creating new layoffs
  - [x] fix tracker page industry column not displaying values
+ - [x] implement industry determination system (WARN data + name patterns, 10-20% coverage; Clearbit API ready for 80-90% coverage)
+ - [ ] research domain/hosting options (task 1 - prerequisite for Clearbit signup)
  - [x] broaden app scope to all industries (not just tech)
  - [hold] add banner image
 
@@ -34,10 +36,12 @@ Social features
 
 Getting Production Ready
 - [x] add admin functionality to review and approve submissions
-- [ ] 1. determine domain name and how to host
+- [ ] 1. determine domain name and how to host (in progress)
 - [ ] 2. determine deployment system
 - [ ] 3. optimize for SEO
 - [ ] 4. plan ways to monitize
 - [ ] 5. implement ads or affiliate links
+ - [ ] improve industry detection to 80-90% (requires domain for Clearbit API signup)
+ - [ ] rebrand to "Workforce Loss Tracker" to match workforceloss.com domain
 
 Last updated: 2026-01-17
