@@ -117,6 +117,7 @@ func main() {
 		"templates/faq.html",
 		"templates/layout.html",
 		"templates/profile.html",
+		"templates/admin.html",
 	))
 
 	// Initialize handlers
@@ -206,23 +207,42 @@ func main() {
 			return c.String(http.StatusInternalServerError, "Failed to create user")
 		}
 
+		log.Printf("User logged in: %s (ID: %d, Admin: %v)", user.Email, user.ID, user.IsAdmin)
+
 		// Store user ID in session
 		sess, _ := session.Get("session", c)
 		sess.Values["user_id"] = user.ID
 		sess.Save(c.Request(), c.Response())
 
+		log.Printf("Session set for user ID: %d", user.ID)
+
+		// Log login event
+		userService.LogSessionEvent(user.ID, "login", c.RealIP(), c.Request().UserAgent())
+
 		return c.Redirect(http.StatusSeeOther, "/")
 	})
 	e.GET("/auth/logout", func(c echo.Context) error {
 		sess, _ := session.Get("session", c)
+		userID, ok := sess.Values["user_id"].(int)
 		delete(sess.Values, "user_id")
 		sess.Save(c.Request(), c.Response())
+
+		// Log logout if user was logged in
+		if ok {
+			userService.LogSessionEvent(userID, "logout", c.RealIP(), c.Request().UserAgent())
+		}
+
 		return c.Redirect(http.StatusSeeOther, "/")
 	})
 
 	// Profile routes
 	e.GET("/profile", handler.Profile)
 	e.POST("/profile", handler.UpdateProfile)
+
+	// Admin routes
+	e.GET("/admin", handler.AdminDashboard)
+	e.POST("/admin/approve", handler.ApproveLayoff)
+	e.POST("/admin/reject", handler.RejectLayoff)
 
 	// Health check
 	e.GET("/ping", func(c echo.Context) error {

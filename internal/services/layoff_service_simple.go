@@ -686,3 +686,42 @@ func (s *LayoffService) GetOrCreateCompany(name string) (int, error) {
 	}
 	return companyID, nil
 }
+
+func (s *LayoffService) ApproveLayoff(id int) error {
+	_, err := s.db.Exec(`UPDATE layoffs SET status = 'approved' WHERE id = ?`, id)
+	return err
+}
+
+func (s *LayoffService) RejectLayoff(id int) error {
+	_, err := s.db.Exec(`UPDATE layoffs SET status = 'rejected' WHERE id = ?`, id)
+	return err
+}
+
+func (s *LayoffService) GetPendingLayoffs() ([]*models.Layoff, error) {
+	rows, err := s.db.Query(`
+		SELECT l.id, l.company_id, l.employees_affected, l.layoff_date, l.source_url, l.notes, l.status, l.created_at,
+		       c.id, c.name, c.website, c.employee_count, c.industry_id
+		FROM layoffs l
+		JOIN companies c ON l.company_id = c.id
+		WHERE l.status = 'pending'
+		ORDER BY l.created_at DESC
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("error querying pending layoffs: %w", err)
+	}
+	defer rows.Close()
+
+	var layoffs []*models.Layoff
+	for rows.Next() {
+		layoff := &models.Layoff{Company: &models.Company{}}
+		err := rows.Scan(
+			&layoff.ID, &layoff.Company.ID, &layoff.EmployeesAffected, &layoff.LayoffDate, &layoff.SourceURL, &layoff.Notes, &layoff.Status, &layoff.CreatedAt,
+			&layoff.Company.ID, &layoff.Company.Name, &layoff.Company.Website, &layoff.Company.EmployeeCount, &layoff.Company.IndustryID,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning layoff: %w", err)
+		}
+		layoffs = append(layoffs, layoff)
+	}
+	return layoffs, nil
+}

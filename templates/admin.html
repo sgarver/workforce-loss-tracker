@@ -1,0 +1,74 @@
+<!-- Admin Dashboard -->
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
+        <p class="mt-2 text-gray-600 dark:text-gray-400">Review and approve pending layoff submissions</p>
+    </div>
+
+    <!-- Pending Layoffs -->
+    <div class="card-bg rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Pending Layoffs ({{len .PendingLayoffs}})</h2>
+        </div>
+
+        {{if .PendingLayoffs}}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="table-bg">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Company</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Employees</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Source</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="card-bg divide-y divide-gray-200 dark:divide-gray-700">
+                    {{range .PendingLayoffs}}
+                    <tr class="hover:table-bg">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900 dark:text-white">{{.Company.Name}}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                            {{.EmployeesAffected}}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {{.LayoffDate.Format "2006-01-02"}}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            {{if .SourceURL.Valid}}
+                            <a href="{{.SourceURL.String}}" target="_blank" class="text-primary-600 dark:text-primary-400 hover:underline">View Source</a>
+                            {{else}}
+                            <span class="text-gray-400 dark:text-gray-500">No source</span>
+                            {{end}}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                            <form method="POST" action="/admin/approve" class="inline">
+                                <input type="hidden" name="id" value="{{.ID}}">
+                                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs">
+                                    Approve
+                                </button>
+                            </form>
+                            <form method="POST" action="/admin/reject" class="inline">
+                                <input type="hidden" name="id" value="{{.ID}}">
+                                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs">
+                                    Reject
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+        {{else}}
+        <div class="px-6 py-12 text-center">
+            <div class="text-gray-500 dark:text-gray-400">
+                <span class="text-2xl mb-2 block">✅</span>
+                No pending layoffs to review.
+            </div>
+        </div>
+        {{end}}
+    </div>
+</div>

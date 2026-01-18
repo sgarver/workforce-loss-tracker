@@ -42,16 +42,26 @@ func NewHandler(layoffService *services.LayoffService, userService *services.Use
 func (h *Handler) getCurrentUser(c echo.Context) *models.User {
 	sess, err := session.Get("session", c)
 	if err != nil {
+		log.Printf("Session error: %v", err)
 		return nil
 	}
-	userID, ok := sess.Values["user_id"].(int)
+	userID, ok := sess.Values["user_id"]
 	if !ok {
+		log.Printf("No user_id in session")
 		return nil
 	}
-	user, err := h.userService.GetUserByID(userID)
+	userIDI, ok := userID.(int)
+	if !ok {
+		log.Printf("user_id not int: %v", userID)
+		return nil
+	}
+	user, err := h.userService.GetUserByID(userIDI)
 	if err != nil {
+		log.Printf("Error getting user %d: %v", userIDI, err)
 		return nil
 	}
+	log.Printf("Scanned user: ID=%d, IsAdmin=%v", user.ID, user.IsAdmin)
+	log.Printf("Current user: %s (admin: %v)", user.Email, user.IsAdmin)
 	return user
 }
 
@@ -102,6 +112,85 @@ func (h *Handler) UpdateProfile(c echo.Context) error {
 	}
 
 	return c.Redirect(http.StatusSeeOther, "/profile")
+}
+
+func (h *Handler) AdminDashboard(c echo.Context) error {
+	user := h.getCurrentUser(c)
+	log.Printf("Admin access attempt: user=%v, isAdmin=%v", user, user != nil && user.IsAdmin)
+	if user == nil || !user.IsAdmin {
+		// Log denied access
+		if user != nil {
+			h.userService.LogSessionEvent(user.ID, "admin_denied", c.RealIP(), c.Request().UserAgent())
+		}
+		return c.Redirect(http.StatusSeeOther, "/")
+	}
+
+	// Log successful admin access
+	h.userService.LogSessionEvent(user.ID, "admin_access", c.RealIP(), c.Request().UserAgent())
+
+	pending, err := h.layoffService.GetPendingLayoffs()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	// Render admin dashboard
+	var contentBuf bytes.Buffer
+	data := map[string]interface{}{
+		"PendingLayoffs": pending,
+	}
+	err = h.templates.ExecuteTemplate(&contentBuf, "admin.html", data)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	layoutData := map[string]interface{}{
+		"Title":      "Tech Layoff Tracker - Admin",
+		"ActivePage": "",
+		"Content":    template.HTML(contentBuf.String()),
+		"User":       user,
+	}
+
+	return c.Render(http.StatusOK, "layout.html", layoutData)
+}
+
+func (h *Handler) ApproveLayoff(c echo.Context) error {
+	user := h.getCurrentUser(c)
+	if user == nil || !user.IsAdmin {
+		return c.JSON(http.StatusForbidden, map[string]string{"error": "Access denied"})
+	}
+
+	idStr := c.FormValue("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid ID"})
+	}
+
+	err = h.layoffService.ApproveLayoff(id)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"message": "Layoff approved"})
+}
+
+func (h *Handler) RejectLayoff(c echo.Context) error {
+	user := h.getCurrentUser(c)
+	if user == nil || !user.IsAdmin {
+		return c.JSON(http.StatusForbidden, map[string]string{"error": "Access denied"})
+	}
+
+	idStr := c.FormValue("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid ID"})
+	}
+
+	err = h.layoffService.RejectLayoff(id)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"message": "Layoff rejected"})
 }
 
 func (h *Handler) Dashboard(c echo.Context) error {

@@ -57,8 +57,8 @@ func (s *UserService) GetUserByProviderID(provider, providerID string) (*models.
 func (s *UserService) GetUserByID(id int) (*models.User, error) {
 	user := &models.User{}
 	sqlDB := s.db.DB
-	query := `SELECT id, provider, provider_id, email, name, avatar_url, created_at FROM users WHERE id = ?`
-	err := sqlDB.QueryRow(query, id).Scan(&user.ID, &user.Provider, &user.ProviderID, &user.Email, &user.Name, &user.AvatarURL, &user.CreatedAt)
+	query := `SELECT id, provider, provider_id, email, name, avatar_url, is_admin, created_at FROM users WHERE id = ?`
+	err := sqlDB.QueryRow(query, id).Scan(&user.ID, &user.Provider, &user.ProviderID, &user.Email, &user.Name, &user.AvatarURL, &user.IsAdmin, &user.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -152,4 +152,11 @@ func (s *UserService) GetUsersForNewDataAlerts() ([]int, error) {
 		userIDs = append(userIDs, userID)
 	}
 	return userIDs, nil
+}
+
+func (s *UserService) LogSessionEvent(userID int, action, ip, userAgent string) error {
+	sqlDB := s.db.DB
+	_, err := sqlDB.Exec(`INSERT INTO session_logs (user_id, action, ip_address, user_agent) VALUES (?, ?, ?, ?)`,
+		userID, action, ip, userAgent)
+	return err
 }
