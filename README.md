@@ -57,11 +57,52 @@ A web application for tracking layoffs across industries using data from public 
 
 ## Running the Application
 
+### Standard Development Mode
+
 ```bash
 go run main.go
 ```
 
 The server will start on port 8080 (configurable via PORT environment variable). Static files are served from the `static/` directory, and HTML templates from `templates/`.
+
+### Systemd Service for Development (Recommended)
+
+For production-like development with persistent logging and automatic restarts, use the systemd service:
+
+**1. Install the Service**
+```bash
+sudo cp layoff-tracker-dev.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable layoff-tracker-dev
+```
+
+**2. Start the Service**
+```bash
+sudo systemctl start layoff-tracker-dev
+```
+
+**3. View Logs**
+```bash
+sudo journalctl -u layoff-tracker-dev -f
+```
+
+**4. Service Management**
+```bash
+# Restart after code changes
+sudo systemctl restart layoff-tracker-dev
+
+# Stop service
+sudo systemctl stop layoff-tracker-dev
+
+# Check status
+sudo systemctl status layoff-tracker-dev
+```
+
+**Benefits:**
+- Persistent logs that survive terminal sessions
+- Automatic restarts on crashes
+- Production-like process management
+- Easy debugging with `journalctl`
 
 ## Linting and Formatting
 
