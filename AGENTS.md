@@ -29,7 +29,7 @@ Whenever changes are made to Go files in this project, follow this process:
    - Ask the user about the next task.
 
 ## Post-Change Checklist (For AI Responses)
-After making changes, include this checklist in responses to ensure protocol adherence:
+After making changes, include this checklist in responses to ensure protocol adherence. Only mark items as [x] if they are truly completed—leave pending items as [ ] and note their status clearly to avoid confusion.
 
 - [ ] **Build Success**: `go build -o layoff-tracker .` - No errors.
 - [ ] **Run Tests**: `go test ./...` - All pass.
