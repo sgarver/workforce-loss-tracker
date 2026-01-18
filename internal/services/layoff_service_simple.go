@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"layoff-tracker/internal/database"
 	"layoff-tracker/internal/models"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -321,10 +322,13 @@ func (s *LayoffService) GetLayoff(id int) (*models.Layoff, error) {
 }
 
 func (s *LayoffService) CreateLayoff(layoff *models.Layoff) error {
-	// Set status based on date
-	status := "completed"
-	if layoff.LayoffDate.After(time.Now()) {
-		status = "planned"
+	// Use status from layoff if set, otherwise set based on date
+	status := layoff.Status
+	if status == "" {
+		status = "completed"
+		if layoff.LayoffDate.After(time.Now()) {
+			status = "planned"
+		}
 	}
 
 	query := `
@@ -667,24 +671,34 @@ func (s *LayoffService) GetLastImportTime() (string, error) {
 	return lastImportTime, nil
 }
 
-func (s *LayoffService) GetOrCreateCompany(name string) (int, error) {
+func (s *LayoffService) GetOrCreateCompany(name, industryIDStr string) (int, error) {
+	// Try to find existing company
 	var companyID int
-	err := s.db.QueryRow("SELECT id FROM companies WHERE LOWER(name) = LOWER(?)", name).Scan(&companyID)
-	if err == sql.ErrNoRows {
-		// Create new company
-		result, err := s.db.Exec("INSERT INTO companies (name) VALUES (?)", name)
-		if err != nil {
-			return 0, err
-		}
-		id, err := result.LastInsertId()
-		if err != nil {
-			return 0, err
-		}
-		return int(id), nil
-	} else if err != nil {
-		return 0, err
+	query := `SELECT id FROM companies WHERE name = ?`
+	err := s.db.QueryRow(query, name).Scan(&companyID)
+	if err == nil {
+		// Company exists
+		return companyID, nil
 	}
-	return companyID, nil
+
+	// Create new company
+	var industryID interface{} = nil
+	if industryIDStr != "" {
+		if id, err := strconv.Atoi(industryIDStr); err == nil {
+			industryID = id
+		}
+	}
+
+	query = `INSERT INTO companies (name, industry_id) VALUES (?, ?)`
+	result, err := s.db.Exec(query, name, industryID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create company: %w", err)
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get company ID: %w", err)
+	}
+	return int(id), nil
 }
 
 func (s *LayoffService) ApproveLayoff(id int) error {
@@ -700,7 +714,7 @@ func (s *LayoffService) RejectLayoff(id int) error {
 func (s *LayoffService) GetPendingLayoffs() ([]*models.Layoff, error) {
 	rows, err := s.db.Query(`
 		SELECT l.id, l.company_id, l.employees_affected, l.layoff_date, l.source_url, l.notes, l.status, l.created_at,
-		       c.id, c.name, c.website, c.employee_count, c.industry_id
+		       c.name, c.website, c.employee_count, c.industry_id
 		FROM layoffs l
 		JOIN companies c ON l.company_id = c.id
 		WHERE l.status = 'pending'
@@ -716,7 +730,36 @@ func (s *LayoffService) GetPendingLayoffs() ([]*models.Layoff, error) {
 		layoff := &models.Layoff{Company: &models.Company{}}
 		err := rows.Scan(
 			&layoff.ID, &layoff.Company.ID, &layoff.EmployeesAffected, &layoff.LayoffDate, &layoff.SourceURL, &layoff.Notes, &layoff.Status, &layoff.CreatedAt,
-			&layoff.Company.ID, &layoff.Company.Name, &layoff.Company.Website, &layoff.Company.EmployeeCount, &layoff.Company.IndustryID,
+			&layoff.Company.Name, &layoff.Company.Website, &layoff.Company.EmployeeCount, &layoff.Company.IndustryID,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning layoff: %w", err)
+		}
+		layoffs = append(layoffs, layoff)
+	}
+	fmt.Printf("GetPendingLayoffs: found %d layoffs\n", len(layoffs))
+	return layoffs, nil
+}
+
+func (s *LayoffService) GetAllLayoffs() ([]*models.Layoff, error) {
+	rows, err := s.db.Query(`
+		SELECT l.id, l.company_id, l.employees_affected, l.layoff_date, l.source_url, l.notes, l.status, l.created_at,
+		       c.name, c.website, c.employee_count, c.industry_id
+		FROM layoffs l
+		JOIN companies c ON l.company_id = c.id
+		ORDER BY l.created_at DESC
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("error querying all layoffs: %w", err)
+	}
+	defer rows.Close()
+
+	var layoffs []*models.Layoff
+	for rows.Next() {
+		layoff := &models.Layoff{Company: &models.Company{}}
+		err := rows.Scan(
+			&layoff.ID, &layoff.Company.ID, &layoff.EmployeesAffected, &layoff.LayoffDate, &layoff.SourceURL, &layoff.Notes, &layoff.Status, &layoff.CreatedAt,
+			&layoff.Company.Name, &layoff.Company.Website, &layoff.Company.EmployeeCount, &layoff.Company.IndustryID,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning layoff: %w", err)

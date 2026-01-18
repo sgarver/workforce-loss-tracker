@@ -243,6 +243,7 @@ func main() {
 	e.GET("/admin", handler.AdminDashboard)
 	e.POST("/admin/approve", handler.ApproveLayoff)
 	e.POST("/admin/reject", handler.RejectLayoff)
+	e.GET("/debug/layoffs", handler.DebugLayoffs)
 
 	// Health check
 	e.GET("/ping", func(c echo.Context) error {
