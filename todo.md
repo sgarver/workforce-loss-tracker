@@ -31,8 +31,16 @@ Testing
 - [x] add an alerting system for issues, site down (ping page?)
 
 Social features
-- [x] add membership system with federation from common providers
-- [x] add commenting system
+ - [x] add membership system with federation from common providers
+ - [x] add commenting system
+
+Authentication features
+ - [ ] add traditional email/password login system
+   - [ ] user registration with email verification
+   - [ ] login/logout forms
+   - [ ] forgot password/reset functionality
+   - [ ] password hashing and security
+   - [ ] session management updates
 
 Getting Production Ready
 - [x] add admin functionality to review and approve submissions
