@@ -18,7 +18,8 @@ Other site changes
 - [x] center FAQ page layout like industries page
 - [x] change colors and font style to more urban and serious looking
  - [x] implement POST /layoffs for creating new layoffs
-- [hold] add banner image
+ - [x] broaden app scope to all industries (not just tech)
+ - [hold] add banner image
 
 Testing
 - [x] add additional logging if needed
