@@ -38,10 +38,10 @@ func (a *AlertService) SendNewDataAlert(userID int, newCount int, lastUpdated st
 
 	log.Printf("Sending new data alert to user %d (%s) for %d new layoffs", userID, user.Email, newCount)
 
-	subject := "New Layoff Data Available on Tech Layoff Tracker"
+	subject := "New Layoff Data Available on Layoff Tracker"
 	body := fmt.Sprintf(`Hi %s,
 
-New layoff data has been imported and is now available on Tech Layoff Tracker!
+New layoff data has been imported and is now available on Layoff Tracker!
 
 📊 Update Summary:
 - %d new layoffs added
@@ -53,7 +53,7 @@ Browse the latest data at: http://localhost:8080/tracker
 You received this alert because you opted in for new data notifications. To manage your preferences, visit your profile: http://localhost:8080/profile
 
 Best,
-Tech Layoff Tracker Team`, user.Name, newCount, lastUpdated)
+Layoff Tracker Team`, user.Name, newCount, lastUpdated)
 
 	err = a.sendEmail(user.Email, subject, body)
 	if err != nil {
