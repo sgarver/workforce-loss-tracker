@@ -17,6 +17,7 @@ Other site changes
 - [x] create AGENTS.md file with change instructions
 - [x] center FAQ page layout like industries page
 - [x] change colors and font style to more urban and serious looking
+- [ ] implement POST /layoffs for creating new layoffs
 - [hold] add banner image
 
 Testing
