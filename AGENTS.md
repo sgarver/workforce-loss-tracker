@@ -40,6 +40,28 @@ After making changes, include this checklist in responses to ensure protocol adh
 - [ ] **Commit Done**: Changes committed with descriptive message.
 - [ ] **Todo Updated**: `todo.md` updated if task completed.
 
+## Explicit Approval Protocol
+
+To ensure strict compliance with user approval requirements:
+
+**1. Pre-Commit Confirmation**
+Before any commit, always include this prompt:
+```
+**Ready to commit?** Please reply with "commit" to approve, or provide feedback for changes.
+```
+
+**2. Checklist Accuracy**
+- Only check [x] items that were actually completed
+- Mark N/A items as such (e.g., "Build Success: N/A - documentation only")
+- Never check "User Approval" until user explicitly approves
+
+**3. Protocol Reminder**
+Include this reminder for all changes:
+*"Following AGENTS.md protocol: Waiting for explicit user approval before committing"*
+
+**4. No Assumptions**
+Never assume approval for any change type - always require explicit "commit" confirmation, even for documentation, README updates, or minor fixes.
+
 ## Task Management
 
 - All current and ongoing tasks are stored in `todo.md`.
