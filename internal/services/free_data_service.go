@@ -350,61 +350,83 @@ func InferIndustryID(companyName string) sql.NullInt64 {
 		}
 	}
 
-	// Then check regex patterns for general categories
+	// Then check regex patterns for general categories (expanded for better coverage)
 	patterns := []struct {
 		regex string
 		id    int
 	}{
-		// Healthcare (2)
-		{`(?i)\b(hospital|clinic|medical center|healthcare|pharma|pharmaceutical|biotech|laboratory)\b`, 2},
-		{`(?i)\b(health|medical|clinic|hospital|pharma)\b.*\b(system|services|center|group|corp)\b`, 2},
+		// Healthcare (2) - Expanded
+		{`(?i)\b(hospital|clinic|medical center|healthcare|pharma|pharmaceutical|biotech|laboratory|dental|therapy|care|wellness)\b`, 2},
+		{`(?i)\b(health|medical|clinic|hospital|pharma|pharmaceutical)\b.*\b(system|services|center|group|corp|inc)\b`, 2},
+		{`(?i)\b(kaiser|mayo|cleve|mass general|johns hopkins|mount sinai|cedars|methodist|presbyterian)\b`, 2},
 
-		// Finance (5)
-		{`(?i)\b(bank|credit union|financial|insurance|investment|banking|capital|securities)\b`, 5},
-		{`(?i)\b(finance|bank|insurance|investment|capital|securities)\b.*\b(services|group|corp|inc)\b`, 5},
+		// Finance (5) - Expanded
+		{`(?i)\b(bank|credit union|financial|insurance|investment|banking|capital|securities|mortgage|lending|wealth|fiduciary)\b`, 5},
+		{`(?i)\b(finance|bank|insurance|investment|capital|securities|mortgage)\b.*\b(services|group|corp|inc|llc)\b`, 5},
+		{`(?i)\b(jpmorgan|goldman|citigroup|wells fargo|bank of america|morgan stanley|fidelity|blackrock|state street)\b`, 5},
 
-		// Retail (3)
-		{`(?i)\b(retail|store|mall|supermarket|department|grocery|convenience|wholesale)\b`, 3},
-		{`(?i)\b(store|retail|mall)\b.*\b(chain|corp|inc|llc)\b`, 3},
+		// Retail (3) - Expanded
+		{`(?i)\b(retail|store|mall|supermarket|department|grocery|convenience|wholesale|market|shop|outlet)\b`, 3},
+		{`(?i)\b(store|retail|mall|market)\b.*\b(chain|corp|inc|llc|co)\b`, 3},
+		{`(?i)\b(walmart|target|costco|home depot|lowes|kroger|publix|meijer|trader joe|whole foods)\b`, 3},
 
-		// Manufacturing (4)
-		{`(?i)\b(manufacturing|factory|production|chemical|pharmaceutical|electronics)\b`, 4},
-		{`(?i)\b(manufacturing|factory|production)\b.*\b(inc|corp|llc|co)\b`, 4},
+		// Manufacturing (4) - Expanded
+		{`(?i)\b(manufacturing|factory|production|chemical|pharmaceutical|electronics|automotive|machinery|equipment)\b`, 4},
+		{`(?i)\b(manufacturing|factory|production|chemical)\b.*\b(inc|corp|llc|co|ltd)\b`, 4},
+		{`(?i)\b(general motors|ford|toyota|honda|volkswagen|boeing|caterpillar|john deere|ge|siemens)\b`, 4},
 
-		// Hospitality (7)
-		{`(?i)\b(restaurant|hotel|motel|casino|resort|hospitality|catering|food service)\b`, 7},
-		{`(?i)\b(hotel|restaurant|casino)\b.*\b(chain|group|corp|inc)\b`, 7},
+		// Hospitality (7) - Expanded
+		{`(?i)\b(restaurant|hotel|motel|casino|resort|hospitality|catering|food service|beverage|bar|pub)\b`, 7},
+		{`(?i)\b(hotel|restaurant|casino|resort)\b.*\b(chain|group|corp|inc|llc)\b`, 7},
+		{`(?i)\b(marriott|hilton|hyatt|ihg|choice|wyn|starwood|mcdonalds|chipotle|starbucks|dominos)\b`, 7},
 
-		// Education (6)
-		{`(?i)\b(university|college|school|academy|education|educational|learning)\b`, 6},
-		{`(?i)\b(education|school|college)\b.*\b(system|services|group)\b`, 6},
+		// Education (6) - Expanded
+		{`(?i)\b(university|college|school|academy|education|educational|learning|training|institute)\b`, 6},
+		{`(?i)\b(education|school|college|academy)\b.*\b(system|services|group|district)\b`, 6},
+		{`(?i)\b(harvard|stanford|mit|yale|princeton|berkeley|usc|ucla|nyu|columbia)\b`, 6},
 
-		// Transportation (8)
-		{`(?i)\b(transportation|shipping|logistics|trucking|rail|airline|aviation|delivery)\b`, 8},
-		{`(?i)\b(transport|shipping|logistics)\b.*\b(services|corp|inc)\b`, 8},
+		// Transportation (8) - Expanded
+		{`(?i)\b(transportation|shipping|logistics|trucking|rail|airline|aviation|delivery|courier|freight)\b`, 8},
+		{`(?i)\b(transport|shipping|logistics|rail|airline)\b.*\b(services|corp|inc|llc)\b`, 8},
+		{`(?i)\b(fedex|ups|dhl|usps|delta|american|united|southwest|amazon logistics)\b`, 8},
 
-		// Construction (9)
-		{`(?i)\b(construction|building|contractor|engineering|architecture)\b`, 9},
-		{`(?i)\b(construction|building)\b.*\b(company|corp|inc|llc)\b`, 9},
+		// Construction (9) - Expanded
+		{`(?i)\b(construction|building|contractor|engineering|architecture|development|builders|contracting)\b`, 9},
+		{`(?i)\b(construction|building|contractor)\b.*\b(company|corp|inc|llc|ltd)\b`, 9},
+		{`(?i)\b(bechtel|fluor|kbr|turner|pulte|kb home|lennar|dr horton)\b`, 9},
 
-		// Energy (10)
-		{`(?i)\b(energy|oil|gas|electric|utility|power|mining|petroleum)\b`, 10},
-		{`(?i)\b(energy|utility|power)\b.*\b(company|corp|inc)\b`, 10},
+		// Energy (10) - Expanded
+		{`(?i)\b(energy|oil|gas|electric|utility|power|mining|petroleum|coal|solar|wind|renewable)\b`, 10},
+		{`(?i)\b(energy|utility|power|oil|gas)\b.*\b(company|corp|inc|ltd)\b`, 10},
+		{`(?i)\b(exxon|chevron|shell|bp|conocophillips|schlumberger|halliburton|dukenergy|southern|dominion)\b`, 10},
 
-		// Government (12)
-		{`(?i)\b(government|state|county|city|municipal|federal|public|county|city)\b`, 12},
-		{`(?i)\b(county|city|state)\b.*\b(of|department|office)\b`, 12},
+		// Entertainment (11) - Expanded
+		{`(?i)\b(entertainment|media|broadcast|publishing|film|television|music|streaming|production)\b`, 11},
+		{`(?i)\b(entertainment|media|film|music)\b.*\b(studios|corp|inc|llc)\b`, 11},
+		{`(?i)\b(disney|comcast|viacom|warner|universal|paramount|netflix|spotify|hulu)\b`, 11},
 
-		// Non-Profit (13)
-		{`(?i)\b(foundation|charity|non.?profit|association|organization|society)\b`, 13},
+		// Government (12) - Expanded
+		{`(?i)\b(government|state|county|city|municipal|federal|public|county|city|department)\b`, 12},
+		{`(?i)\b(county|city|state|department)\b.*\b(of|office|services)\b`, 12},
+		{`(?i)\b(united states|department of|bureau of|census|irs|ssa|fbi|cia)\b`, 12},
 
-		// Agriculture (14)
-		{`(?i)\b(agriculture|farming|farm|crop|livestock|dairy|poultry)\b`, 14},
-		{`(?i)\b(farm|farming|agriculture)\b.*\b(inc|corp|llc|co)\b`, 14},
+		// Non-Profit (13) - Expanded
+		{`(?i)\b(foundation|charity|non.?profit|association|organization|society|fund|trust|alliance)\b`, 13},
+		{`(?i)\b(red cross|unicef|world health|greenpeace|amnesty|salvation army)\b`, 13},
 
-		// Real Estate (15)
-		{`(?i)\b(real estate|property|housing|rental|leasing|development)\b`, 15},
-		{`(?i)\b(real estate|property)\b.*\b(services|group|corp)\b`, 15},
+		// Agriculture (14) - Expanded
+		{`(?i)\b(agriculture|farming|farm|crop|livestock|dairy|poultry|ranch|plantation)\b`, 14},
+		{`(?i)\b(farm|farming|agriculture|ranch)\b.*\b(inc|corp|llc|co|ltd)\b`, 14},
+		{`(?i)\b(monsanto|bayer|cargill|john deere|deere|archer daniels|cargill)\b`, 14},
+
+		// Real Estate (15) - Expanded
+		{`(?i)\b(real estate|property|housing|rental|leasing|development|realtor|brokerage)\b`, 15},
+		{`(?i)\b(real estate|property|housing)\b.*\b(services|group|corp|inc)\b`, 15},
+		{`(?i)\b(cbre|jll|colliers|cushman|newmark|eastdil|transwestern)\b`, 15},
+
+		// Technology (1) - Additional patterns
+		{`(?i)\b(tech|software|digital|cyber|cloud|ai|ml|data|analytics|platform)\b`, 1},
+		{`(?i)\b(tech|software|digital)\b.*\b(solutions|systems|services|inc)\b`, 1},
 	}
 
 	// Check regex patterns for general categories
