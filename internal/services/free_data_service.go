@@ -4,12 +4,15 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"layoff-tracker/internal/database"
 	"layoff-tracker/internal/models"
 	"log"
 	"net/http"
 	"net/smtp"
+	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -103,6 +106,7 @@ func (s *FreeDataService) ImportFromWARNDatabase() error {
 			warnDateStr := strings.TrimSpace(record[4])
 			effectiveDateStr := strings.TrimSpace(record[5])
 			layoffType := strings.TrimSpace(record[6])
+			warnIndustry := strings.TrimSpace(record[11]) // Extract industry from CSV
 
 			if companyName == "" || workersStr == "" {
 				continue // Skip records with missing company or worker count
@@ -178,8 +182,11 @@ func (s *FreeDataService) ImportFromWARNDatabase() error {
 			notes := fmt.Sprintf("Source: Official WARN Database (layoffdata.com) | State: %s | City: %s | Type: %s | WARN Date: %s",
 				state, city, layoffType, warnDateStr)
 
-			// Infer industry for the company
-			industryID := InferIndustryID(companyName)
+			// Determine industry: use CSV industry first, then fall back to name inference
+			industryID := MapWARNIndustryToID(warnIndustry)
+			if !industryID.Valid {
+				industryID = InferIndustryID(companyName)
+			}
 
 			// Create company if not exists, then get the ID
 			_, err = s.db.Exec("INSERT OR IGNORE INTO companies (name, employee_count, industry_id) VALUES (?, ?, ?)",
@@ -273,64 +280,139 @@ func EstimateCompanySize(companyName string) int {
 }
 
 func InferIndustryID(companyName string) sql.NullInt64 {
-	companyName = strings.ToLower(companyName)
+	companyName = strings.ToLower(strings.TrimSpace(companyName))
 
-	// Industry mappings based on keywords in company names
+	// Check keyword mappings first (specific company matches take precedence)
 	industryMappings := map[string]int{
-		// SaaS (1)
+		// Technology (1) - Major tech companies
+		"google": 1, "microsoft": 1, "meta": 1, "apple": 1, "amazon": 1,
+		"facebook": 1, "twitter": 1, "instagram": 1, "linkedin": 1, "netflix": 1,
 		"slack": 1, "zoom": 1, "atlassian": 1, "salesforce": 1, "zendesk": 1,
-		"twilio": 1, "stripe": 1, "dropbox": 1, "box": 1,
+		"twilio": 1, "stripe": 1, "dropbox": 1, "box": 1, "paypal": 1,
+		"square": 1, "coinbase": 2, "robinhood": 2, "nvidia": 1, "intel": 1,
+		"amd": 1, "qualcomm": 1, "ibm": 1, "oracle": 1, "adobe": 1,
 
-		// FinTech (2)
-		"paypal": 2, "square": 2, "coinbase": 2, "robinhood": 2, "affirm": 2, "sofi": 2,
-		"chime": 2, "brex": 2, "plaid": 2, "wise": 2, "revolut": 2, "monzo": 2,
+		// Healthcare (2) - Major healthcare companies
+		"johnson & johnson": 2, "pfizer": 2, "merck": 2, "abbott": 2,
+		"medtronic": 2, "baxter": 2, "stryker": 2, "zimmer": 2,
 
-		// HealthTech (3)
-		"roche": 3, "pfizer": 3, "moderna": 3, "theranos": 3, "23andme": 3, "goodrx": 3,
+		// Retail (3) - Major retailers
+		"walmart": 3, "target": 3, "costco": 3, "home depot": 3, "lowes": 3,
+		"kroger": 3, "macy's": 3, "nordstrom": 3, "bed bath & beyond": 3,
 
-		// E-commerce (4)
-		"amazon": 4, "ebay": 4, "etsy": 4, "shopify": 4, "walmart": 4, "target": 4,
+		// Manufacturing (4) - Major manufacturers
+		"general motors": 4, "ford": 4, "toyota": 4, "volkswagen": 4,
+		"boeing": 4, "lockheed martin": 4, "raytheon": 4, "general electric": 4,
+		"caterpillar": 4, "john deere": 4,
 
-		// AI/ML (5)
-		"openai": 5, "anthropic": 5, "hugging face": 5, "cortex": 5, "scale ai": 5, "databricks": 5,
-		"cerebras": 5, "graphcore": 5, "nvidia": 5, "google": 5, "microsoft": 5, "meta": 5,
+		// Finance (5) - Major financial institutions
+		"jpmorgan": 5, "bank of america": 5, "wells fargo": 5, "citigroup": 5,
+		"goldman sachs": 5, "morgan stanley": 5, "fidelity": 5, "blackrock": 5,
 
-		// Gaming (6)
-		"riot": 6, "epic": 6, "activision": 6, "ea": 6, "ubisoft": 6, "take-two": 6,
-		"zynga": 6, "unity": 6, "roblox": 6, "steam": 6,
+		// Education (6) - Major education companies
+		"pearson": 6, "mckinsey": 6, "deloitte": 6, "accenture": 6,
 
-		// Social Media (7)
-		"facebook": 7, "twitter": 7, "instagram": 7, "tiktok": 7, "snapchat": 7, "linkedin": 7,
-		"pinterest": 7, "reddit": 7, "discord": 7,
+		// Hospitality (7) - Major hospitality companies
+		"marriott": 7, "hilton": 7, "hyatt": 7, "starwood": 7,
+		"mcdonald's": 7, "starbucks": 7, "chipotle": 7, "yum brands": 7,
 
-		// Cloud Computing (8)
-		"aws": 8, "azure": 8, "gcp": 8, "digitalocean": 8, "linode": 8, "heroku": 8,
-		"vercel": 8, "netlify": 8, "cloudflare": 8,
+		// Transportation (8) - Major transportation companies
+		"uber": 8, "lyft": 8, "fedex": 8, "ups": 8, "dhl": 8,
+		"delta": 8, "american airlines": 8, "united": 8, "tesla": 8,
 
-		// Cybersecurity (9)
-		"crowdstrike": 9, "palo alto": 9, "fortinet": 9, "checkpoint": 9, "zscaler": 9,
-		"okta": 9, "duo": 9, "auth0": 9,
+		// Construction (9) - Major construction companies
+		"bechtel": 9, "fluor": 9, "kbr": 9,
 
-		// EdTech (10)
-		"coursera": 10, "udacity": 10, "khan academy": 10, "duolingo": 10, "outschool": 10,
-		"masterclass": 10, "codecademy": 10,
+		// Energy (10) - Major energy companies
+		"exxon": 10, "chevron": 10, "shell": 10, "bp": 10,
+		"conocophillips": 10, "schlumberger": 10,
 
-		// Transportation (11)
-		"uber": 11, "lyft": 11, "doordash": 11, "instacart": 11, "bird": 11, "lime": 11,
-		"waymo": 11, "cruise": 11,
+		// Entertainment (11) - Major entertainment companies
+		"disney": 11, "comcast": 11, "viacom": 11, "news corp": 11,
 
-		// Real Estate Tech (12)
-		"zillow": 12, "redfin": 12, "compass": 12, "opendoor": 12, "offerpad": 12,
+		// Government (12) - Government entities
+		"department of": 12, "united states": 12, "state of": 12,
 
-		// HR Tech (13)
-		"greenhouse": 13, "lever": 13, "workday": 13, "bamboohr": 13, "gusto": 13,
+		// Non-Profit (13) - Major non-profits
+		"red cross": 13, "unicef": 13, "world health organization": 13,
 
-		// Marketing Tech (14)
-		"hubspot": 14, "mailchimp": 14, "constant contact": 14, "hootsuite": 14,
+		// Agriculture (14) - Major agriculture companies
+		"monsanto": 14, "cargill": 14, "archer daniels midland": 14,
 
-		// Hardware (15)
-		"apple": 15, "dell": 15, "hp": 15, "lenovo": 15, "asus": 15, "samsung": 15,
-		"intel": 15, "amd": 15, "qualcomm": 15,
+		// Real Estate (15) - Major real estate companies
+		"cbre": 15, "jll": 15, "colliers": 15,
+	}
+
+	// Check for keyword matches first (specific company matches)
+	for keyword, industryID := range industryMappings {
+		if strings.Contains(companyName, keyword) {
+			return sql.NullInt64{Int64: int64(industryID), Valid: true}
+		}
+	}
+
+	// Then check regex patterns for general categories
+	patterns := []struct {
+		regex string
+		id    int
+	}{
+		// Healthcare (2)
+		{`(?i)\b(hospital|clinic|medical center|healthcare|pharma|pharmaceutical|biotech|laboratory)\b`, 2},
+		{`(?i)\b(health|medical|clinic|hospital|pharma)\b.*\b(system|services|center|group|corp)\b`, 2},
+
+		// Finance (5)
+		{`(?i)\b(bank|credit union|financial|insurance|investment|banking|capital|securities)\b`, 5},
+		{`(?i)\b(finance|bank|insurance|investment|capital|securities)\b.*\b(services|group|corp|inc)\b`, 5},
+
+		// Retail (3)
+		{`(?i)\b(retail|store|mall|supermarket|department|grocery|convenience|wholesale)\b`, 3},
+		{`(?i)\b(store|retail|mall)\b.*\b(chain|corp|inc|llc)\b`, 3},
+
+		// Manufacturing (4)
+		{`(?i)\b(manufacturing|factory|production|chemical|pharmaceutical|electronics)\b`, 4},
+		{`(?i)\b(manufacturing|factory|production)\b.*\b(inc|corp|llc|co)\b`, 4},
+
+		// Hospitality (7)
+		{`(?i)\b(restaurant|hotel|motel|casino|resort|hospitality|catering|food service)\b`, 7},
+		{`(?i)\b(hotel|restaurant|casino)\b.*\b(chain|group|corp|inc)\b`, 7},
+
+		// Education (6)
+		{`(?i)\b(university|college|school|academy|education|educational|learning)\b`, 6},
+		{`(?i)\b(education|school|college)\b.*\b(system|services|group)\b`, 6},
+
+		// Transportation (8)
+		{`(?i)\b(transportation|shipping|logistics|trucking|rail|airline|aviation|delivery)\b`, 8},
+		{`(?i)\b(transport|shipping|logistics)\b.*\b(services|corp|inc)\b`, 8},
+
+		// Construction (9)
+		{`(?i)\b(construction|building|contractor|engineering|architecture)\b`, 9},
+		{`(?i)\b(construction|building)\b.*\b(company|corp|inc|llc)\b`, 9},
+
+		// Energy (10)
+		{`(?i)\b(energy|oil|gas|electric|utility|power|mining|petroleum)\b`, 10},
+		{`(?i)\b(energy|utility|power)\b.*\b(company|corp|inc)\b`, 10},
+
+		// Government (12)
+		{`(?i)\b(government|state|county|city|municipal|federal|public|county|city)\b`, 12},
+		{`(?i)\b(county|city|state)\b.*\b(of|department|office)\b`, 12},
+
+		// Non-Profit (13)
+		{`(?i)\b(foundation|charity|non.?profit|association|organization|society)\b`, 13},
+
+		// Agriculture (14)
+		{`(?i)\b(agriculture|farming|farm|crop|livestock|dairy|poultry)\b`, 14},
+		{`(?i)\b(farm|farming|agriculture)\b.*\b(inc|corp|llc|co)\b`, 14},
+
+		// Real Estate (15)
+		{`(?i)\b(real estate|property|housing|rental|leasing|development)\b`, 15},
+		{`(?i)\b(real estate|property)\b.*\b(services|group|corp)\b`, 15},
+	}
+
+	// Check regex patterns for general categories
+	for _, pattern := range patterns {
+		matched, err := regexp.MatchString(pattern.regex, companyName)
+		if err == nil && matched {
+			return sql.NullInt64{Int64: int64(pattern.id), Valid: true}
+		}
 	}
 
 	// Check for keyword matches
@@ -341,6 +423,329 @@ func InferIndustryID(companyName string) sql.NullInt64 {
 	}
 
 	return sql.NullInt64{Valid: false} // No match found
+}
+
+// MapWARNIndustryToID maps WARN Database industry descriptions to our industry IDs
+func MapWARNIndustryToID(warnIndustry string) sql.NullInt64 {
+	if warnIndustry == "" {
+		return sql.NullInt64{Valid: false}
+	}
+
+	warnIndustry = strings.ToLower(strings.TrimSpace(warnIndustry))
+
+	// Map WARN industry descriptions to our industry IDs (based on NAICS categories)
+	warnMappings := map[string]int{
+		// Technology (1) - Professional, Scientific, and Technical Services
+		"professional, scientific, and technical services": 1,
+		"information": 1,
+		"computer systems design and related services":   1,
+		"software publishers":                            1,
+		"data processing, hosting, and related services": 1,
+
+		// Healthcare (2) - Health Care and Social Assistance
+		"health care and social assistance":       2,
+		"offices of physicians":                   2,
+		"hospitals":                               2,
+		"nursing and residential care facilities": 2,
+		"medical and diagnostic laboratories":     2,
+		"home health care services":               2,
+
+		// Retail (3) - Retail Trade
+		"retail trade":                                                3,
+		"motor vehicle and parts dealers":                             3,
+		"furniture and home furnishings stores":                       3,
+		"electronics and appliance stores":                            3,
+		"building material and garden equipment and supplies dealers": 3,
+		"food and beverage stores":                                    3,
+		"health and personal care stores":                             3,
+		"gasoline stations":                                           3,
+		"clothing and clothing accessories stores":                    3,
+		"sporting goods, hobby, musical instrument, and book stores":  3,
+		"general merchandise stores":                                  3,
+
+		// Manufacturing (4) - Manufacturing
+		"manufacturing":      4,
+		"food manufacturing": 4,
+		"beverage and tobacco product manufacturing": 4,
+		"textile mills":                                                4,
+		"apparel manufacturing":                                        4,
+		"wood product manufacturing":                                   4,
+		"chemical manufacturing":                                       4,
+		"plastics and rubber products manufacturing":                   4,
+		"nonmetallic mineral product manufacturing":                    4,
+		"primary metal manufacturing":                                  4,
+		"fabricated metal product manufacturing":                       4,
+		"machinery manufacturing":                                      4,
+		"computer and electronic product manufacturing":                4,
+		"electrical equipment, appliance, and component manufacturing": 4,
+		"transportation equipment manufacturing":                       4,
+
+		// Finance (5) - Finance and Insurance
+		"finance and insurance":                        5,
+		"credit intermediation and related activities": 5,
+		"securities, commodity contracts, and other financial investments and related activities": 5,
+		"insurance carriers and related activities":                                               5,
+
+		// Education (6) - Educational Services
+		"educational services":                             6,
+		"elementary and secondary schools":                 6,
+		"colleges, universities, and professional schools": 6,
+
+		// Hospitality (7) - Accommodation and Food Services
+		"accommodation and food services":   7,
+		"traveler accommodation":            7,
+		"food services and drinking places": 7,
+
+		// Transportation (8) - Transportation and Warehousing
+		"transportation and warehousing":        8,
+		"air transportation":                    8,
+		"rail transportation":                   8,
+		"water transportation":                  8,
+		"truck transportation":                  8,
+		"support activities for transportation": 8,
+		"postal service":                        8,
+
+		// Construction (9) - Construction
+		"construction":                             9,
+		"construction of buildings":                9,
+		"heavy and civil engineering construction": 9,
+		"specialty trade contractors":              9,
+
+		// Energy (10) - Utilities
+		"utilities": 10,
+		"electric power generation, transmission and distribution": 10,
+		"natural gas distribution":                                 10,
+		"water, sewage and other systems":                          10,
+
+		// Entertainment (11) - Arts, Entertainment, and Recreation
+		"arts, entertainment, and recreation":                       11,
+		"performing arts, spectator sports, and related industries": 11,
+		"museums, historical sites, and similar institutions":       11,
+		"amusement, gambling, and recreation industries":            11,
+
+		// Government (12) - Public Administration
+		"public administration": 12,
+		"executive, legislative, and other general government support": 12,
+		"justice, public order, and safety activities":                 12,
+		"administration of human resource programs":                    12,
+		"administration of environmental quality programs":             12,
+		"administration of economic programs":                          12,
+
+		// Non-Profit (13) - Other Services (except Public Administration)
+		"religious, grantmaking, civic, professional, and similar organizations": 13,
+
+		// Agriculture (14) - Agriculture, Forestry, Fishing and Hunting
+		"agriculture, forestry, fishing and hunting": 14,
+		"crop production":                   14,
+		"animal production and aquaculture": 14,
+
+		// Real Estate (15) - Real Estate and Rental and Leasing
+		"real estate and rental and leasing": 15,
+		"real estate":                        15,
+	}
+
+	// Check for exact matches first
+	if industryID, exists := warnMappings[warnIndustry]; exists {
+		return sql.NullInt64{Int64: int64(industryID), Valid: true}
+	}
+
+	// Check for partial matches
+	for warnDesc, industryID := range warnMappings {
+		if strings.Contains(warnIndustry, warnDesc) || strings.Contains(warnDesc, warnIndustry) {
+			return sql.NullInt64{Int64: int64(industryID), Valid: true}
+		}
+	}
+
+	return sql.NullInt64{Valid: false} // No match found
+}
+
+// EnrichCompanyIndustries runs post-import enrichment using Clearbit API for companies without industries
+func (s *FreeDataService) EnrichCompanyIndustries(clearbitAPIKey string) error {
+	if clearbitAPIKey == "" {
+		log.Println("Clearbit API key not provided, skipping enrichment")
+		return nil
+	}
+
+	// Get companies without industries
+	rows, err := s.db.Query(`
+		SELECT id, name, website
+		FROM companies
+		WHERE industry_id IS NULL AND website IS NOT NULL
+		LIMIT 100`) // Limit to avoid rate limits
+	if err != nil {
+		return fmt.Errorf("error querying companies without industries: %w", err)
+	}
+	defer rows.Close()
+
+	enriched := 0
+	for rows.Next() {
+		var id int
+		var name string
+		var website sql.NullString
+
+		if err := rows.Scan(&id, &name, &website); err != nil {
+			log.Printf("Error scanning company: %v", err)
+			continue
+		}
+
+		if !website.Valid || website.String == "" {
+			continue
+		}
+
+		// Extract domain from website
+		domain := extractDomain(website.String)
+		if domain == "" {
+			continue
+		}
+
+		// Query Clearbit API
+		industryID, err := s.queryClearbitIndustry(domain, clearbitAPIKey)
+		if err != nil {
+			log.Printf("Error querying Clearbit for %s: %v", domain, err)
+			continue
+		}
+
+		if industryID.Valid {
+			// Update company with industry
+			_, err = s.db.Exec("UPDATE companies SET industry_id = ? WHERE id = ?", industryID.Int64, id)
+			if err != nil {
+				log.Printf("Error updating industry for company %d: %v", id, err)
+			} else {
+				enriched++
+				log.Printf("Enriched company %s (%s) with industry %d", name, domain, industryID.Int64)
+			}
+		}
+
+		// Rate limit: Clearbit free tier allows 500 requests/month, so limit to ~15/day
+		time.Sleep(2 * time.Second)
+	}
+
+	log.Printf("Enriched %d companies with Clearbit data", enriched)
+	return nil
+}
+
+// queryClearbitIndustry queries Clearbit API for company industry
+func (s *FreeDataService) queryClearbitIndustry(domain, apiKey string) (sql.NullInt64, error) {
+	url := fmt.Sprintf("https://company.clearbit.com/v2/companies/find?domain=%s", domain)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return sql.NullInt64{Valid: false}, err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return sql.NullInt64{Valid: false}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return sql.NullInt64{Valid: false}, fmt.Errorf("Clearbit API returned status %d", resp.StatusCode)
+	}
+
+	var result struct {
+		Category struct {
+			Industry string `json:"industry"`
+		} `json:"category"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return sql.NullInt64{Valid: false}, err
+	}
+
+	if result.Category.Industry == "" {
+		return sql.NullInt64{Valid: false}, nil
+	}
+
+	// Map Clearbit industry to our industry IDs
+	industryID := mapClearbitIndustryToID(result.Category.Industry)
+	return industryID, nil
+}
+
+// mapClearbitIndustryToID maps Clearbit industry names to our industry IDs
+func mapClearbitIndustryToID(clearbitIndustry string) sql.NullInt64 {
+	clearbitIndustry = strings.ToLower(strings.TrimSpace(clearbitIndustry))
+
+	clearbitMappings := map[string]int{
+		"technology": 1,
+		"software":   1,
+		"internet":   1,
+		"mobile":     1,
+		"hardware":   1,
+
+		"healthcare":     2,
+		"medical":        2,
+		"pharmaceutical": 2,
+		"biotechnology":  2,
+
+		"retail":         3,
+		"e-commerce":     3,
+		"consumer goods": 3,
+
+		"manufacturing": 4,
+		"industrial":    4,
+
+		"finance":            5,
+		"financial services": 5,
+		"banking":            5,
+		"insurance":          5,
+
+		"education": 6,
+		"edtech":    6,
+
+		"hospitality": 7,
+		"food":        7,
+		"restaurants": 7,
+
+		"transportation": 8,
+		"logistics":      8,
+		"automotive":     8,
+
+		"construction": 9,
+		"real estate":  15,
+		"property":     15,
+
+		"energy":    10,
+		"utilities": 10,
+
+		"entertainment": 11,
+		"media":         11,
+		"gaming":        11,
+
+		"government":  12,
+		"non-profit":  13,
+		"agriculture": 14,
+	}
+
+	if id, exists := clearbitMappings[clearbitIndustry]; exists {
+		return sql.NullInt64{Int64: int64(id), Valid: true}
+	}
+
+	// Partial matches
+	for clearbit, id := range clearbitMappings {
+		if strings.Contains(clearbitIndustry, clearbit) || strings.Contains(clearbit, clearbitIndustry) {
+			return sql.NullInt64{Int64: int64(id), Valid: true}
+		}
+	}
+
+	return sql.NullInt64{Valid: false}
+}
+
+// extractDomain extracts domain from URL
+func extractDomain(url string) string {
+	// Simple domain extraction - remove protocol and path
+	url = strings.TrimPrefix(url, "http://")
+	url = strings.TrimPrefix(url, "https://")
+	url = strings.TrimPrefix(url, "www.")
+
+	if idx := strings.Index(url, "/"); idx != -1 {
+		url = url[:idx]
+	}
+
+	return strings.ToLower(url)
 }
 
 // Import from Revelio Labs Public Labor Statistics (aggregated data)
@@ -607,6 +1012,16 @@ func SetupFreeDataRoutes(e *echo.Echo, db *database.DB) {
 			return c.JSON(500, map[string]string{"error": err.Error()})
 		}
 		return c.JSON(200, map[string]string{"message": "Revelio Labs data checked (aggregated data)"})
+	})
+
+	// Enrich company industries with Clearbit
+	e.POST("/import/enrich", func(c echo.Context) error {
+		clearbitKey := os.Getenv("CLEARBIT_API_KEY")
+		err := freeDataService.EnrichCompanyIndustries(clearbitKey)
+		if err != nil {
+			return c.JSON(500, map[string]string{"error": err.Error()})
+		}
+		return c.JSON(200, map[string]string{"message": "Company industry enrichment completed"})
 	})
 
 	// Import stats

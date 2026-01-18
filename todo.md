@@ -8,16 +8,17 @@ For the tracker page
 - [x] change date format to from now style like youtube
 
 Other site changes
-- [x] add FAQ page
-- [x] evaluate report layoff button feature value (implemented and working)
-- [x] finish COMMUNITY links
-- [x] fix dashboard HTML escaping/rendering issue
-- [x] skip initial data import on startup
-- [x] set user-submitted layoffs to "pending" status for review
-- [x] create AGENTS.md file with change instructions
-- [x] center FAQ page layout like industries page
-- [x] change colors and font style to more urban and serious looking
- - [x] implement POST /layoffs for creating new layoffs
+ - [x] add FAQ page
+ - [x] evaluate report layoff button feature value (implemented and working)
+ - [x] finish COMMUNITY links
+ - [x] fix dashboard HTML escaping/rendering issue
+ - [x] skip initial data import on startup
+ - [x] set user-submitted layoffs to "pending" status for review
+ - [x] create AGENTS.md file with change instructions
+ - [x] center FAQ page layout like industries page
+ - [x] change colors and font style to more urban and serious looking
+  - [x] implement POST /layoffs for creating new layoffs
+ - [x] fix tracker page industry column not displaying values
  - [x] broaden app scope to all industries (not just tech)
  - [hold] add banner image
 
