@@ -178,18 +178,25 @@
                         <span id="theme-icon" class="text-lg">🌙</span>
                     </button>
                     {{if .User}}
-                    <span class="text-gray-700 dark:text-gray-300 text-sm">Welcome, {{.User.Name}}!</span>
-                    <a href="/profile" class="text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
-                        Profile
-                    </a>
-                    {{if .User.IsAdmin}}
-                    <a href="/admin" class="text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
-                        Admin
-                    </a>
-                    {{end}}
-                    <a href="/auth/logout" class="text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
-                        Logout
-                    </a>
+                    <div class="relative">
+                        <button onclick="toggleUserMenu()" class="text-gray-700 dark:text-gray-300 text-sm font-medium flex items-center space-x-1 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                            <span>Welcome, {{.User.Name}}!</span>
+                            <span id="user-menu-icon" class="text-xs">▼</span>
+                        </button>
+                        <div id="user-menu" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 hidden">
+                            <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                Profile
+                            </a>
+                            {{if .User.IsAdmin}}
+                            <a href="/admin" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                Admin
+                            </a>
+                            {{end}}
+                            <a href="/auth/logout" class="block px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                Logout
+                            </a>
+                        </div>
+                    </div>
                     {{else}}
                     <a href="/auth/google" class="text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
                         Login
@@ -262,6 +269,30 @@
     </footer>
 
     <script>
+        function toggleUserMenu() {
+            const menu = document.getElementById('user-menu');
+            const icon = document.getElementById('user-menu-icon');
+            const isHidden = menu.classList.contains('hidden');
+            if (isHidden) {
+                menu.classList.remove('hidden');
+                icon.textContent = '▲';
+            } else {
+                menu.classList.add('hidden');
+                icon.textContent = '▼';
+            }
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('user-menu');
+            const button = event.target.closest('button');
+            if (!button || !button.onclick || button.onclick.toString().indexOf('toggleUserMenu') === -1) {
+                menu.classList.add('hidden');
+                const icon = document.getElementById('user-menu-icon');
+                if (icon) icon.textContent = '▼';
+            }
+        });
+
         // Theme toggle
         function toggleTheme() {
             const html = document.documentElement;
