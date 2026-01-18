@@ -42,6 +42,6 @@ Getting Production Ready
 - [ ] 4. plan ways to monitize
 - [ ] 5. implement ads or affiliate links
  - [ ] improve industry detection to 80-90% (requires domain for Clearbit API signup)
- - [ ] rebrand to "Workforce Loss Tracker" to match workforceloss.com domain
+ - [x] rebrand to "Workforce Loss Tracker" to match workforceloss.com domain
 
 Last updated: 2026-01-17
