@@ -1,13 +1,13 @@
-# Layoff Tracker
+# Workforce Loss Tracker
 
-A web application for tracking layoffs across industries using data from public WARN Act filings. Features include automated data import, web dashboard, filtering and search, layoff detail pages, CSV export, and notification system.
+A web application for tracking workforce reductions across industries using data from public WARN Act filings. Features include automated data import, web dashboard, filtering and search, layoff detail pages, CSV export, and notification system.
 
 ## Features
 
 - **Automated Data Import**: Nightly import of WARN Act filings from all US states
 - **Web Dashboard**: Overview with statistics, trends, and industry breakdowns
-- **Layoff Tracker**: Browse layoffs with advanced filtering (industry, date range, employee count, search)
-- **Layoff Management**: View detailed layoff information, add new layoff reports
+- **Workforce Loss Tracker**: Browse workforce losses with advanced filtering (industry, date range, employee count, search)
+- **Workforce Loss Management**: View detailed workforce loss information, add new workforce loss reports
 - **Industry Overview**: Statistics and breakdowns by industry
 - **CSV Export**: Export filtered layoff data to CSV
 - **API**: RESTful API for statistics and layoff data
@@ -38,16 +38,16 @@ A web application for tracking layoffs across industries using data from public 
 - `GET /api/sponsored` - Sponsored listings
 - `GET /api/current-layoffs` - Recent layoffs (last 30 days)
 
-### Layoff Management
-- `GET /layoffs/:id` - Get detailed layoff information
-- `GET /layoffs/new` - Form for reporting new layoffs
-- `POST /layoffs` - Create new layoff report
+### Workforce Loss Management
+- `GET /layoffs/:id` - Get detailed workforce loss information
+- `GET /layoffs/new` - Form for reporting new workforce losses
+- `POST /layoffs` - Create new workforce loss report
 
 ### Web Interface
 - `GET /` or `GET /dashboard` - Dashboard with statistics and trends
-- `GET /tracker` - Layoff tracker with filtering and search
+- `GET /tracker` - Workforce loss tracker with filtering and search
 - `GET /industries` - Industry overview page
-- `GET /export/csv` - Export filtered layoffs to CSV
+- `GET /export/csv` - Export filtered workforce losses to CSV
 
 ## Dependencies
 

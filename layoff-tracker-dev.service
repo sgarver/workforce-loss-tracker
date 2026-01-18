@@ -1,0 +1,15 @@
+[Unit]
+Description=Layoff Tracker Development Service
+After=network.target
+
+[Service]
+Type=simple
+User=sdg
+WorkingDirectory=/home/sdg/code/tech-layoff-tracker
+ExecStart=/home/sdg/code/tech-layoff-tracker/layoff-tracker
+Restart=always
+RestartSec=5
+Environment=GO_ENV=development
+
+[Install]
+WantedBy=default.target

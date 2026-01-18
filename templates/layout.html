@@ -5,7 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light dark">
   <title>{{.Title}}</title>
-    
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Track workforce reductions across all industries using WARN Act data. Monitor layoffs, job losses, and employment trends with real-time updates.">
+    <meta name="keywords" content="workforce loss, layoffs, job loss, employment data, WARN Act, workforce reduction, industry layoffs">
+    <meta name="author" content="Workforce Loss Tracker">
+
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -40,7 +50,7 @@
                         }
                     },
                     fontFamily: {
-                        sans: ['Switzer', 'sans-serif'],
+                        sans: ['Inter', 'sans-serif'],
                     },
                     animation: {
                         'fade-in': 'fadeIn 0.5s ease-in-out',
@@ -155,7 +165,7 @@
                             <div class="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
                                 <span class="text-white font-bold text-sm">📊</span>
                             </div>
-                            <span class="text-xl font-bold text-gray-900 dark:text-white">Layoff Tracker</span>
+                            <span class="text-xl font-bold text-gray-900 dark:text-white">Workforce Loss Tracker</span>
                         </a>
                     </div>
                     <div class="hidden md:ml-8 md:flex md:space-x-8">
@@ -230,7 +240,7 @@
                         <span class="text-xl font-bold text-gray-900 dark:text-white">Layoff Tracker</span>
                     </div>
                     <p class="text-gray-600 dark:text-gray-300 mb-4">
-                        Real-time tracking of tech industry layoffs with data from official WARN Act filings.
+                        Real-time tracking of workforce reductions with data from official WARN Act filings.
                         Stay informed about workforce changes across major technology companies.
                     </p>
                 </div>
@@ -247,7 +257,7 @@
                 <div>
                     <h3 class="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Community</h3>
                     <ul class="space-y-2">
-                        <li><a href="/layoffs/new" class="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">Report Layoff</a></li>
+                        <li><a href="/layoffs/new" class="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">Report Workforce Loss</a></li>
                         <li><a href="https://www.dol.gov/agencies/eta/layoffs/warn" target="_blank" class="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">WARN Act Info</a></li>
                         <li><span class="text-gray-600 dark:text-gray-300">Data Privacy</span></li>
                     </ul>
@@ -256,7 +266,7 @@
             <div class="border-t border-gray-200 dark:border-gray-700 mt-8 pt-8">
                 <div class="flex flex-col md:flex-row justify-between items-center">
                     <p class="text-gray-500 dark:text-gray-400 text-sm">
-                        © 2026 Layoff Tracker. Built with transparency in mind.
+                        © 2026 Workforce Loss Tracker. Built with transparency in mind.
                     </p>
                     <div class="flex space-x-6 mt-4 md:mt-0">
                         <span class="text-gray-500 dark:text-gray-400 text-sm">Privacy</span>

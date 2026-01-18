@@ -89,7 +89,7 @@ func (h *Handler) Profile(c echo.Context) error {
 	}
 
 	layoutData := map[string]interface{}{
-		"Title":      "Layoff Tracker - Profile",
+		"Title":      "Workforce Loss Tracker - Profile",
 		"ActivePage": "",
 		"Content":    template.HTML(contentBuf.String()),
 		"User":       user,
@@ -148,7 +148,7 @@ func (h *Handler) AdminDashboard(c echo.Context) error {
 	}
 
 	layoutData := map[string]interface{}{
-		"Title":      "Layoff Tracker - Admin",
+		"Title":      "Workforce Loss Tracker - Admin",
 		"ActivePage": "",
 		"Content":    template.HTML(contentBuf.String()),
 		"User":       user,
@@ -276,7 +276,7 @@ func (h *Handler) Dashboard(c echo.Context) error {
 	})
 
 	layoutData := map[string]interface{}{
-		"Title":      "Layoff Tracker - Dashboard",
+		"Title":      "Workforce Loss Tracker - Dashboard",
 		"ActivePage": "dashboard",
 		"Content":    template.HTML(contentBuf.String()),
 		"User":       h.getCurrentUser(c),
@@ -317,7 +317,7 @@ func (h *Handler) Tracker(c echo.Context) error {
 	}
 
 	layoutData := map[string]interface{}{
-		"Title":      "Layoff Tracker - Browse Layoffs",
+		"Title":      "Workforce Loss Tracker - Browse Workforce Losses",
 		"ActivePage": "tracker",
 		"Content":    template.HTML(contentBuf.String()),
 	}
@@ -351,7 +351,7 @@ func (h *Handler) LayoffDetail(c echo.Context) error {
 	}
 
 	layoutData := map[string]interface{}{
-		"Title":      fmt.Sprintf("%s Layoff Details", layoff.Company.Name),
+		"Title":      fmt.Sprintf("%s Workforce Loss Details", layoff.Company.Name),
 		"ActivePage": "",
 		"Content":    template.HTML(contentBuf.String()),
 		"User":       h.getCurrentUser(c),
@@ -377,7 +377,7 @@ func (h *Handler) NewLayoff(c echo.Context) error {
 	}
 
 	layoutData := map[string]interface{}{
-		"Title":      "Layoff Tracker - Report Layoff",
+		"Title":      "Workforce Loss Tracker - Report Workforce Loss",
 		"ActivePage": "",
 		"Content":    template.HTML(contentBuf.String()),
 		"User":       h.getCurrentUser(c),
@@ -501,7 +501,7 @@ func (h *Handler) Industries(c echo.Context) error {
 	}
 
 	layoutData := map[string]interface{}{
-		"Title":      "Layoff Tracker - Industries",
+		"Title":      "Workforce Loss Tracker - Industries",
 		"ActivePage": "industries",
 		"Content":    template.HTML(contentBuf.String()),
 		"User":       h.getCurrentUser(c),
@@ -519,7 +519,7 @@ func (h *Handler) FAQ(c echo.Context) error {
 	}
 
 	layoutData := map[string]interface{}{
-		"Title":      "Layoff Tracker - Browse Layoffs",
+		"Title":      "Workforce Loss Tracker - Browse Workforce Losses",
 		"ActivePage": "tracker",
 		"Content":    template.HTML(contentBuf.String()),
 	}
