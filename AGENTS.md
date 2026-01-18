@@ -15,7 +15,7 @@ Whenever changes are made to Go files in this project, follow this process:
 3. **Restart the Site**:
    - Stop any running instances: `pkill -f layoff-tracker`
    - Build and start the server: `./layoff-tracker &`
-   - Confirm the server is running: `curl -s http://127.0.0.1:8080/ping` should return "pong"
+   - Confirm the server is running: Wait for `curl -s http://127.0.0.1:8080/ping` to return "pong"
    - Use curl to verify that the changes fix the specific issue (e.g., curl relevant endpoints or pages)
 
 4. **Manual Verification**:
