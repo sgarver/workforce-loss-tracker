@@ -1,39 +1,23 @@
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
+# Binaries
 layoff-tracker
+layoff-tracker-linux
 
-# Test binary, built with `go test -c`
-*.test
+# Environment files
+.env
+.env.local
 
-# Output of the go coverage tool
-*.out
-
-# Dependency directories
-vendor/
-
-# Go workspace file
-go.work
-
-# SQLite database files
+# Database
 *.db
-*.db-*
-layoff_tracker.db*
+*.db-wal
+*.db-shm
 
-# Temporary files
-*.tmp
+# Logs
 *.log
 
-# IDE files
+# IDE
 .vscode/
 .idea/
 
-# OS files
+# OS
 .DS_Store
 Thumbs.db
-
-# Environment variables
-.env
