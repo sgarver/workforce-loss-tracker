@@ -89,7 +89,7 @@ func (h *Handler) Profile(c echo.Context) error {
 	}
 
 	layoutData := map[string]interface{}{
-		"Title":      "Tech Layoff Tracker - Profile",
+		"Title":      "Layoff Tracker - Profile",
 		"ActivePage": "",
 		"Content":    template.HTML(contentBuf.String()),
 		"User":       user,
@@ -148,7 +148,7 @@ func (h *Handler) AdminDashboard(c echo.Context) error {
 	}
 
 	layoutData := map[string]interface{}{
-		"Title":      "Tech Layoff Tracker - Admin",
+		"Title":      "Layoff Tracker - Admin",
 		"ActivePage": "",
 		"Content":    template.HTML(contentBuf.String()),
 		"User":       user,
@@ -276,7 +276,7 @@ func (h *Handler) Dashboard(c echo.Context) error {
 	})
 
 	layoutData := map[string]interface{}{
-		"Title":      "Tech Layoff Tracker - Dashboard",
+		"Title":      "Layoff Tracker - Dashboard",
 		"ActivePage": "dashboard",
 		"Content":    template.HTML(contentBuf.String()),
 		"User":       h.getCurrentUser(c),
@@ -317,7 +317,7 @@ func (h *Handler) Tracker(c echo.Context) error {
 	}
 
 	layoutData := map[string]interface{}{
-		"Title":      "Tech Layoff Tracker - Browse Layoffs",
+		"Title":      "Layoff Tracker - Browse Layoffs",
 		"ActivePage": "tracker",
 		"Content":    template.HTML(contentBuf.String()),
 	}
@@ -377,7 +377,7 @@ func (h *Handler) NewLayoff(c echo.Context) error {
 	}
 
 	layoutData := map[string]interface{}{
-		"Title":      "Tech Layoff Tracker - Report Layoff",
+		"Title":      "Layoff Tracker - Report Layoff",
 		"ActivePage": "",
 		"Content":    template.HTML(contentBuf.String()),
 		"User":       h.getCurrentUser(c),
@@ -501,7 +501,7 @@ func (h *Handler) Industries(c echo.Context) error {
 	}
 
 	layoutData := map[string]interface{}{
-		"Title":      "Tech Layoff Tracker - Industries",
+		"Title":      "Layoff Tracker - Industries",
 		"ActivePage": "industries",
 		"Content":    template.HTML(contentBuf.String()),
 		"User":       h.getCurrentUser(c),
@@ -519,7 +519,7 @@ func (h *Handler) FAQ(c echo.Context) error {
 	}
 
 	layoutData := map[string]interface{}{
-		"Title":      "Tech Layoff Tracker - Browse Layoffs",
+		"Title":      "Layoff Tracker - Browse Layoffs",
 		"ActivePage": "tracker",
 		"Content":    template.HTML(contentBuf.String()),
 	}

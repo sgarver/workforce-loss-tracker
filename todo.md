@@ -17,7 +17,7 @@ Other site changes
 - [x] create AGENTS.md file with change instructions
 - [x] center FAQ page layout like industries page
 - [x] change colors and font style to more urban and serious looking
-- [ ] implement POST /layoffs for creating new layoffs
+ - [x] implement POST /layoffs for creating new layoffs
 - [hold] add banner image
 
 Testing
@@ -32,10 +32,10 @@ Social features
 
 Getting Production Ready
 - [x] add admin functionality to review and approve submissions
-- [ ] determine domain name and how to host
-- [ ] determine deployment system
-- [ ] optimize for SEO
-- [ ] plan ways to monitize
-- [ ] implement adds or affilate links
+- [ ] 1. determine domain name and how to host
+- [ ] 2. determine deployment system
+- [ ] 3. optimize for SEO
+- [ ] 4. plan ways to monitize
+- [ ] 5. implement ads or affiliate links
 
 Last updated: 2026-01-17

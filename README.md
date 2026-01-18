@@ -1,6 +1,6 @@
-# Tech Layoff Tracker
+# Layoff Tracker
 
-A web application for tracking tech industry layoffs using data from public WARN Act filings. Features include automated data import, web dashboard, filtering and search, layoff detail pages, CSV export, and notification system.
+A web application for tracking layoffs across industries using data from public WARN Act filings. Features include automated data import, web dashboard, filtering and search, layoff detail pages, CSV export, and notification system.
 
 ## Features
 
@@ -8,7 +8,7 @@ A web application for tracking tech industry layoffs using data from public WARN
 - **Web Dashboard**: Overview with statistics, trends, and industry breakdowns
 - **Layoff Tracker**: Browse layoffs with advanced filtering (industry, date range, employee count, search)
 - **Layoff Management**: View detailed layoff information, add new layoff reports
-- **Industry Overview**: Statistics and breakdowns by tech industry
+- **Industry Overview**: Statistics and breakdowns by industry
 - **CSV Export**: Export filtered layoff data to CSV
 - **API**: RESTful API for statistics and layoff data
 - **Notifications**: Email notifications for import status and failures
@@ -76,7 +76,7 @@ go fmt ./...
 
 Uses SQLite (`layoff_tracker.db`) with automatic migrations. Tables include:
 
-- `industries` - Tech industry categories
+- `industries` - Industry categories
 - `companies` - Company information with industry links
 - `layoffs` - Layoff records with employee counts, dates, and sources
 - `sponsored_listings` - Promotional listings for companies
