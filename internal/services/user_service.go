@@ -132,7 +132,12 @@ func (s *UserService) SetSystemSetting(key, value string) error {
 
 func (s *UserService) GetUsersForNewDataAlerts() ([]int, error) {
 	sqlDB := s.db.DB
-	rows, err := sqlDB.Query(`SELECT user_id FROM user_alert_prefs WHERE email_alerts_enabled = 1 AND alert_new_data = 1`)
+	// Include opted-in users OR admins
+	rows, err := sqlDB.Query(`
+		SELECT p.user_id FROM user_alert_prefs p
+		JOIN users u ON p.user_id = u.id
+		WHERE (p.email_alerts_enabled = 1 AND p.alert_new_data = 1) OR u.is_admin = 1
+	`)
 	if err != nil {
 		return nil, fmt.Errorf("error querying users for alerts: %w", err)
 	}
