@@ -30,7 +30,7 @@ Social features
 - [x] add commenting system
 
 Getting Production Ready
-- [ ] add admin functionality to review and approve submissions
+- [x] add admin functionality to review and approve submissions
 - [ ] determine domain name and how to host
 - [ ] determine deployment system
 - [ ] optimize for SEO
