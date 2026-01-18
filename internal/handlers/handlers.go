@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"database/sql"
 	"fmt"
 	"html/template"
 	"io"
@@ -130,8 +131,11 @@ func (h *Handler) AdminDashboard(c echo.Context) error {
 
 	pending, err := h.layoffService.GetPendingLayoffs()
 	if err != nil {
+		log.Printf("Error getting pending layoffs: %v", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
+
+	log.Printf("Found %d pending layoffs", len(pending))
 
 	// Render admin dashboard
 	var contentBuf bytes.Buffer
@@ -191,6 +195,26 @@ func (h *Handler) RejectLayoff(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"message": "Layoff rejected"})
+}
+
+func (h *Handler) DebugLayoffs(c echo.Context) error {
+	user := h.getCurrentUser(c)
+	if user == nil || !user.IsAdmin {
+		return c.Redirect(http.StatusSeeOther, "/")
+	}
+
+	// Get all layoffs for debugging
+	layoffs, err := h.layoffService.GetAllLayoffs()
+	if err != nil {
+		return c.String(http.StatusInternalServerError, err.Error())
+	}
+
+	result := "All layoffs:\n"
+	for _, l := range layoffs {
+		result += fmt.Sprintf("ID: %d, Company: %s, Status: %s, Created: %s\n", l.ID, l.Company.Name, l.Status, l.CreatedAt)
+	}
+
+	return c.String(http.StatusOK, result)
 }
 
 func (h *Handler) Dashboard(c echo.Context) error {
@@ -363,7 +387,58 @@ func (h *Handler) NewLayoff(c echo.Context) error {
 }
 
 func (h *Handler) CreateLayoff(c echo.Context) error {
-	return c.String(http.StatusOK, "Create layoff coming soon.")
+	// Parse form data
+	companyName := c.FormValue("company_name")
+	employeesStr := c.FormValue("employees_affected")
+	layoffDateStr := c.FormValue("layoff_date")
+	sourceURL := c.FormValue("source_url")
+	notes := c.FormValue("notes")
+	industryIDStr := c.FormValue("industry_id")
+
+	// Validate required fields
+	if companyName == "" || employeesStr == "" || layoffDateStr == "" {
+		return c.String(http.StatusBadRequest, "Company name, employees affected, and layoff date are required")
+	}
+
+	// Parse employees
+	employees, err := strconv.Atoi(employeesStr)
+	if err != nil || employees <= 0 {
+		return c.String(http.StatusBadRequest, "Invalid number of employees")
+	}
+
+	// Parse date
+	layoffDate, err := time.Parse("2006-01-02", layoffDateStr)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "Invalid layoff date format")
+	}
+
+	// Get or create company
+	companyID, err := h.layoffService.GetOrCreateCompany(companyName, industryIDStr)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to create company")
+	}
+
+	// Create layoff
+	layoff := &models.Layoff{
+		CompanyID:         companyID,
+		EmployeesAffected: employees,
+		LayoffDate:        layoffDate,
+		SourceURL:         sql.NullString{String: sourceURL, Valid: sourceURL != ""},
+		Notes:             notes,
+		Status:            "pending",
+		CreatedAt:         time.Now(),
+	}
+
+	err = h.layoffService.CreateLayoff(layoff)
+	if err != nil {
+		log.Printf("Error creating layoff: %v", err)
+		return c.String(http.StatusInternalServerError, "Failed to create layoff")
+	}
+
+	log.Printf("Layoff created successfully: company %s, employees %d, status %s", companyName, employees, layoff.Status)
+
+	// Redirect to success or home
+	return c.Redirect(http.StatusSeeOther, "/?message=Layoff+reported+successfully")
 }
 
 // Comment handlers
