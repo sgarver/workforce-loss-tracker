@@ -182,6 +182,11 @@
                     <a href="/profile" class="text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
                         Profile
                     </a>
+                    {{if .User.IsAdmin}}
+                    <a href="/admin" class="text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
+                        Admin
+                    </a>
+                    {{end}}
                     <a href="/auth/logout" class="text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
                         Logout
                     </a>
