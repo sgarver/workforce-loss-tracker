@@ -1,0 +1,102 @@
+name: CI/CD Pipeline
+on:
+  push:
+    branches: [ main, staging ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 8 * * *'  # Daily at 8 AM UTC
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deploy to environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    - run: go mod tidy
+    - run: go vet ./...
+    - run: |
+        go test ./... -v -coverprofile=coverage.out
+        go tool cover -html=coverage.out -o coverage.html
+    - uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.out
+        fail_ci_if_error: false
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Run Gosec Security Scanner
+      uses: securecodewarrior/github-actions-gosec@master
+      with:
+        args: './...'
+    - name: Run Trivy Vulnerability Scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  build:
+    needs: [test, security]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    - run: |
+        export CGO_ENABLED=1 GOOS=linux GOARCH=amd64
+        go build -o layoff-tracker .
+    - uses: actions/upload-artifact@v4
+      with:
+        name: linux-binary-${{ github.sha }}
+        path: layoff-tracker
+
+  notify:
+    needs: [test, security]
+    runs-on: ubuntu-latest
+    if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    steps:
+    - name: Send Status Email
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 465
+        username: ${{ secrets.SMTP_USERNAME }}
+        password: ${{ secrets.SMTP_PASSWORD }}
+        subject: 'Workforce Loss Tracker - ${{ github.event_name == ''schedule'' && ''Nightly'' || ''Manual'' }} CI/CD Report'
+        body: |
+          ${{ github.event_name == 'schedule' && 'Nightly' || 'Manual' }} CI/CD Report for ${{ github.repository }}
+
+          Status: ${{ job.status }}
+          Tests: ${{ needs.test.result }}
+          Security: ${{ needs.security.result }}
+          Coverage: View at ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          Commit: ${{ github.sha }}
+          Branch: ${{ github.ref_name }}
+          Triggered by: ${{ github.actor }}
+
+          View details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        to: sgarver@gmail.com
