@@ -50,16 +50,22 @@ Before any commit, always include this prompt:
 **Ready to commit?** Please reply with "commit" to approve, or provide feedback for changes.
 ```
 
-**2. Checklist Accuracy**
+**2. Approval Order is Critical**
+- **NEVER commit before approval** - Wait for explicit "commit" confirmation
+- Show checklist and prompt FIRST
+- Commit SECOND (only after approval received)
+- If user provides feedback instead of "commit", address feedback and re-prompt
+
+**3. Checklist Accuracy**
 - Only check [x] items that were actually completed
 - Mark N/A items as such (e.g., "Build Success: N/A - documentation only")
 - Never check "User Approval" until user explicitly approves
 
-**3. Protocol Reminder**
+**4. Protocol Reminder**
 Include this reminder for all changes:
 *"Following AGENTS.md protocol: Waiting for explicit user approval before committing"*
 
-**4. No Assumptions**
+**5. No Assumptions**
 Never assume approval for any change type - always require explicit "commit" confirmation, even for documentation, README updates, or minor fixes.
 
 ## Task Management
