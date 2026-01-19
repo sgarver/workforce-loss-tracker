@@ -152,6 +152,7 @@ func main() {
 	e.POST("/layoffs", handler.CreateLayoff)
 	e.GET("/industries", handler.Industries)
 	e.GET("/faq", handler.FAQ)
+	e.GET("/privacy", handler.Privacy)
 	e.GET("/export/csv", handler.ExportCSV)
 
 	// Setup free data import routes
