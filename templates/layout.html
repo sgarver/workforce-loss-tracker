@@ -300,7 +300,7 @@
             const menu = document.getElementById('user-menu');
             const button = event.target.closest('button');
             if (!button || !button.onclick || button.onclick.toString().indexOf('toggleUserMenu') === -1) {
-                menu.classList.add('hidden');
+                if (menu) menu.classList.add('hidden'); // Guard against null menu
                 const icon = document.getElementById('user-menu-icon');
                 if (icon) icon.textContent = '▼';
             }
