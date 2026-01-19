@@ -73,12 +73,20 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: linux-binary-${{ github.sha }}
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SERVER_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
     - name: Deploy to Production
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.SERVER_HOST }}
-        port: ${{ secrets.SERVER_PORT }}
-        protocol: tcp6
-        username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SERVER_SSH_KEY }}
-        script: "sudo systemctl stop layoff-tracker\ncp /opt/layoff-tracker/layoff-tracker /opt/layoff-tracker/layoff-tracker.backup.$(date +%Y%m%d_%H%M%S)\ncp layoff-tracker /opt/layoff-tracker/layoff-tracker\nsudo systemctl start layoff-tracker\nsleep 5\ncurl -f http://localhost:8080/ping || exit 1\necho \"Deployment successful!\""
+      run: |
+        ssh -p ${{ secrets.SERVER_PORT }} ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+        sudo systemctl stop layoff-tracker
+        cp /opt/layoff-tracker/layoff-tracker /opt/layoff-tracker/layoff-tracker.backup.$(date +%Y%m%d_%H%M%S)
+        cp layoff-tracker /opt/layoff-tracker/layoff-tracker
+        sudo systemctl start layoff-tracker
+        sleep 5
+        curl -f http://localhost:8080/ping || exit 1
+        echo "Deployment successful!"
+        EOF
