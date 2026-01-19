@@ -322,6 +322,9 @@
                 themeIcon.textContent = '☀️';
                 localStorage.setItem('theme', 'dark');
             }
+
+            // Dispatch theme change event for chart updates
+            document.dispatchEvent(new CustomEvent('themeChange'));
         }
 
         // Load saved theme
@@ -345,6 +348,11 @@
                     localStorage.setItem('theme', 'light');
                 }
             }
+
+            // Dispatch theme change event for charts that load after DOM ready
+            setTimeout(() => {
+                document.dispatchEvent(new CustomEvent('themeChange'));
+            }, 100);
         });
     </script>
 </body>
