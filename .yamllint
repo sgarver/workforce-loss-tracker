@@ -5,7 +5,7 @@ rules:
     max: 120
   indentation:
     spaces: 2
-    indent-sequences: true
+    indent-sequences: false
     check-multi-line-strings: false
   brackets:
     forbid: false
@@ -13,3 +13,4 @@ rules:
     allowed-values: ['true', 'false', 'on', 'off']
     check-keys: false
   document-start: disable
+  new-line-at-end-of-file: enable
