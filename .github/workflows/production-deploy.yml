@@ -86,6 +86,7 @@ jobs:
         server_port: 465
         username: ${{ secrets.SMTP_USERNAME }}
         password: ${{ secrets.SMTP_PASSWORD }}
+        from: ${{ secrets.SMTP_USERNAME }}
         subject: >
           Workforce Loss Tracker -
           ${{ github.event_name == 'schedule' && 'Nightly' || 'Manual' }}
