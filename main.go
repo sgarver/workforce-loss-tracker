@@ -309,7 +309,7 @@ func main() {
 		port = "8080"
 	}
 
-	log.Printf("Server starting on port %s", port)
+	log.Printf("Server starting on port %s - SDLC test update", port)
 	log.Fatal(e.Start("0.0.0.0:" + port))
 }
 
