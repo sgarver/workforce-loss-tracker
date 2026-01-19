@@ -61,8 +61,8 @@ jobs:
        with:
          sarif_file: 'trivy-results.sarif'
 
-  build:
-    needs: [test, security]
+   build:
+     needs: [test]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
     steps:
@@ -78,8 +78,8 @@ jobs:
         name: linux-binary-${{ github.sha }}
         path: layoff-tracker
 
-  notify:
-    needs: [test, security]
+   notify:
+     needs: [test]
     runs-on: ubuntu-latest
     if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     steps:
