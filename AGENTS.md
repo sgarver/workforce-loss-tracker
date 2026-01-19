@@ -4,6 +4,11 @@
 
 Whenever changes are made to Go files in this project, follow this process:
 
+0. **Pre-Push Checks** (Optional but Recommended):
+    - Run `./pre-push-check.sh` to validate code quality locally
+    - Includes build, test, and YAML linting checks
+    - Prevents pushing broken code
+
 1. **Verify Build Success**:
    - Run `go build -o layoff-tracker .` to ensure the project compiles successfully.
    - Check for any compilation errors and fix them.
@@ -79,6 +84,7 @@ For all changes (not just Go files), follow this Software Development Lifecycle:
 
 ### 1. Local Development
 - Make code changes locally
+- Run `./pre-push-check.sh` for local validation (build, tests, linting)
 - Follow the "Process for Making Changes to Go Files" above if applicable
 - Test locally: build, unit tests, integration tests, manual verification
 
