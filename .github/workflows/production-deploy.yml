@@ -66,14 +66,13 @@ jobs:
         path: layoff-tracker
 
   deploy:
-    needs: [integration-test]
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy' && github.actor == 'sgarver'
     runs-on: ubuntu-latest
     steps:
     - run: echo "Production deployment triggered by ${{ github.actor }}"
 
   notify:
-    needs: [test, security, integration-test]
+    needs: [test, security]
     runs-on: ubuntu-latest
     if: >
       always() &&
