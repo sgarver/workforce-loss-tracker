@@ -544,6 +544,23 @@ func (h *Handler) Privacy(c echo.Context) error {
 	return c.Render(http.StatusOK, "layout.html", layoutData)
 }
 
+func (h *Handler) Terms(c echo.Context) error {
+	// Render terms content
+	var contentBuf bytes.Buffer
+	err := h.templates.ExecuteTemplate(&contentBuf, "terms.html", map[string]interface{}{})
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	layoutData := map[string]interface{}{
+		"Title":      "Terms of Service - Workforce Loss Tracker",
+		"ActivePage": "terms",
+		"Content":    template.HTML(contentBuf.String()),
+	}
+
+	return c.Render(http.StatusOK, "layout.html", layoutData)
+}
+
 func (h *Handler) ExportCSV(c echo.Context) error {
 	params := h.ParseFilterParams(c)
 	params.Limit = 10000 // Export up to 10,000 records
