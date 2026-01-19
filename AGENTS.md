@@ -73,6 +73,37 @@ Never assume approval for any change type - always require explicit "commit" con
 - All current and ongoing tasks are stored in `todo.md`.
 - Update `todo.md` with new tasks, mark completed tasks, and update timestamps as needed.
 
+## Complete SDLC Process
+
+For all changes (not just Go files), follow this Software Development Lifecycle:
+
+### 1. Local Development
+- Make code changes locally
+- Follow the "Process for Making Changes to Go Files" above if applicable
+- Test locally: build, unit tests, integration tests, manual verification
+
+### 2. Staging Deployment
+- **Push to `staging` branch** for CI validation
+- CI runs: Tests, Security scan, Build, Integration tests
+- Monitor staging CI results
+- If staging fails, fix issues and re-push to staging
+
+### 3. Production Deployment
+- **Only after staging passes**: Push/merge to `main` branch
+- CI runs again on main
+- Manual production deployment via GitHub Actions (admin only)
+- Verify production functionality
+
+### 4. Rollback (If Needed)
+- If production issues arise, use documented rollback steps in `DEPLOY.md`
+- Restore from timestamped backup on server
+
+### Key Principles
+- **Never push directly to main** - always validate on staging first
+- **Require explicit user approval** before any commits
+- **Test thoroughly** at each stage
+- **Document all processes** in `DEPLOY.md`
+
 ## Final Step
 
 - After completing changes, update the list time in `todo.md` to reflect the current timestamp.
