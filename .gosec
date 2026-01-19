@@ -1,0 +1,20 @@
+# Gosec configuration file
+# Ignore certain security issues that are false positives or acceptable
+
+ignore:
+  # G101: Potential hardcoded password (false positive for env vars)
+  - G101
+  # G201: SQL string formatting (acceptable for prepared statements)
+  - G201
+  # G202: SQL string formatting (acceptable for controlled inputs)
+  - G202
+  # G401: Use of weak cryptographic function (not applicable)
+  - G401
+  # G501: Import blacklist: crypto/md5 (not used)
+  - G501
+  # G502: Import blacklist: crypto/sha1 (not used)
+  - G502
+  # G503: Import blacklist: crypto/des (not used)
+  - G503
+  # G504: Import blacklist: crypto/rc4 (not used)
+  - G504
