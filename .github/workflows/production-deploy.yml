@@ -1,24 +1,23 @@
-name: CI/CD Pipeline
+name: Production Deploy
 on:
   push:
-    branches: [main, staging]
-  pull_request:
-    branches: [main]
+    branches: [ main ]
   schedule:
     - cron: '0 8 * * *'  # Daily at 8 AM UTC
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Select branch first, then choose action: staging=CI only, production=deploy'
+      action:
+        description: 'Choose action: validate=run tests, deploy=production deployment'
         required: true
-        default: 'staging'
+        default: 'validate'
         type: choice
         options:
-        - staging
-        - production
+        - validate
+        - deploy
 
 jobs:
   test:
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.action == 'validate'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -36,6 +35,7 @@ jobs:
         fail_ci_if_error: false
 
   security:
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.action == 'validate'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -50,8 +50,8 @@ jobs:
 
   build:
     needs: [test, security]
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.action == 'validate'
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-go@v4
@@ -66,20 +66,19 @@ jobs:
         path: layoff-tracker
 
   deploy:
-    if: >
-      github.event_name == 'workflow_dispatch' &&
-      github.event.inputs.environment == 'production' &&
-      github.actor == 'sgarver'
+    needs: [integration-test]
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy' && github.actor == 'sgarver'
     runs-on: ubuntu-latest
     steps:
     - run: echo "Production deployment triggered by ${{ github.actor }}"
 
   notify:
-    needs: [test, security]
+    needs: [test, security, integration-test]
     runs-on: ubuntu-latest
     if: >
       always() &&
-      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+      (github.event_name == 'schedule' ||
+       (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'validate'))
     steps:
     - name: Send Status Email
       uses: dawidd6/action-send-mail@v3
