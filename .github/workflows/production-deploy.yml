@@ -16,9 +16,9 @@ on:
         - deploy
 
 jobs:
-  test:
-    if: github.event_name != 'workflow_dispatch' || github.event.inputs.action == 'validate'
-    runs-on: ubuntu-latest
+   test:
+     if: github.event_name != 'workflow_dispatch' || github.event.inputs.action == 'validate' || github.event.inputs.action == 'deploy'
+     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-go@v4
@@ -34,9 +34,9 @@ jobs:
         file: ./coverage.out
         fail_ci_if_error: false
 
-  security:
-    if: github.event_name != 'workflow_dispatch' || github.event.inputs.action == 'validate'
-    runs-on: ubuntu-latest
+   security:
+     if: github.event_name != 'workflow_dispatch' || github.event.inputs.action == 'validate' || github.event.inputs.action == 'deploy'
+     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-go@v4
