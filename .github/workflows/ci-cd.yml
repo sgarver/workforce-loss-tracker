@@ -76,7 +76,7 @@ jobs:
         path: layoff-tracker
 
   notify:
-     needs: [test, security]
+    needs: [test, security]
     runs-on: ubuntu-latest
     if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     steps:
