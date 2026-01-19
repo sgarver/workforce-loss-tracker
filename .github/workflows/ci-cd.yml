@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Deploy to environment'
+        description: 'Select branch first, then choose action: staging=CI only, production=deploy'
         required: true
         default: 'staging'
         type: choice
