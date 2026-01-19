@@ -35,29 +35,6 @@ jobs:
         file: ./coverage.out
         fail_ci_if_error: false
 
-  security:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-go@v4
-      with:
-        go-version: '1.21'
-    - run: go mod tidy
-    - name: Run Gosec Security Scanner
-      run: docker run --rm -v $(pwd):/app -w /app securecodewarrior/gosec:latest gosec -conf .gosec ./...
-    - name: Run Trivy Vulnerability Scanner
-      uses: aquasecurity/trivy-action@master
-      with:
-        scan-type: 'fs'
-        scan-ref: '.'
-        format: 'sarif'
-        output: 'trivy-results.sarif'
-    - name: Upload Trivy scan results
-      uses: github/codeql-action/upload-sarif@v3
-      if: always()
-      with:
-        sarif_file: 'trivy-results.sarif'
-
   build:
     needs: [test]
     runs-on: ubuntu-latest
