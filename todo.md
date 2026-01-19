@@ -23,6 +23,7 @@ Other site changes
  - [ ] research domain/hosting options (task 1 - prerequisite for Clearbit signup)
  - [x] broaden app scope to all industries (not just tech)
  - [hold] add banner image
+ - [x] add contact page with footer link
 
 Testing
 - [x] add additional logging if needed
@@ -52,4 +53,4 @@ Getting Production Ready
  - [ ] improve industry detection to 80-90% (requires domain for Clearbit API signup)
  - [x] rebrand to "Workforce Loss Tracker" to match workforceloss.com domain
 
-Last updated: 2026-01-17
+Last updated: 2026-01-18
