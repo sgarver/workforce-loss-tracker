@@ -11,6 +11,10 @@ A web application for tracking workforce reductions across industries using data
 - **Workforce Loss Tracker**: Browse workforce losses with advanced filtering (industry, date range, employee count, search)
 - **Workforce Loss Management**: View detailed workforce loss information, add new workforce loss reports
 - **Industry Overview**: Statistics and breakdowns by industry
+
+## Deployment
+
+See [DEPLOY.md](DEPLOY.md) for deployment and rollback procedures.
 - **CSV Export**: Export filtered layoff data to CSV
 - **API**: RESTful API for statistics and layoff data
 - **Notifications**: Email notifications for import status and failures
