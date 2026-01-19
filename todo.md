@@ -20,11 +20,12 @@ Other site changes
   - [x] implement POST /layoffs for creating new layoffs
  - [x] fix tracker page industry column not displaying values
  - [x] implement industry determination system (WARN data + name patterns, 10-20% coverage; Clearbit API ready for 80-90% coverage)
- - [ ] research domain/hosting options (task 1 - prerequisite for Clearbit signup)
+ - [x] complete SDLC: integration tests, rollback automation
  - [x] broaden app scope to all industries (not just tech)
  - [hold] add banner image
  - [x] add contact page with footer link
  - [x] reorganize footer: consolidate legal links into Legal section
+ - [x] fix weekly layoff trends chart to end at current week, not future
 
 Testing
 - [x] add additional logging if needed
