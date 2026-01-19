@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="light dark">
-  <title>{{.Title}}</title>
+    <meta name="color-scheme" content="light dark">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+    <title>{{.Title}}</title>
 
     <!-- SEO Meta Tags -->
     <meta name="description" content="Track workforce reductions across all industries using WARN Act data. Monitor layoffs, job losses, and employment trends with real-time updates.">
@@ -17,11 +18,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
       // Suppress Tailwind CDN production warning
-      tailwind.config = {};
+      if (window.tailwind) {
+        window.tailwind.config = {};
+      }
     </script>
-    <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
