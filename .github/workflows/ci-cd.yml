@@ -48,6 +48,37 @@ jobs:
         curl -sfL https://raw.githubusercontent.com/securecodewarrior/gosec/master/install.sh | sh -s -- -b .
         ./gosec -conf .gosec -fmt json ./... || true
 
+  integration-test:
+    needs: [build]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    - uses: actions/download-artifact@v4
+      with:
+        name: linux-binary-${{ github.sha }}
+    - run: |
+        chmod +x layoff-tracker
+        ./layoff-tracker &
+        SERVER_PID=$!
+        sleep 5
+        curl -f http://localhost:8080/ping || exit 1
+        curl -f http://localhost:8080/api/stats | jq '.total_layoffs' || exit 1
+        kill $SERVER_PID
+
   build:
     needs: [test, security]
     runs-on: ubuntu-latest
@@ -66,7 +97,7 @@ jobs:
         path: layoff-tracker
 
   notify:
-    needs: [test, security]
+    needs: [test, security, integration-test]
     runs-on: ubuntu-latest
     if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     steps:
