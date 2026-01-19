@@ -116,6 +116,7 @@ func main() {
 		"templates/industries.html",
 		"templates/faq.html",
 		"templates/privacy.html",
+		"templates/terms.html",
 		"templates/layout.html",
 		"templates/profile.html",
 		"templates/admin.html",
@@ -154,6 +155,7 @@ func main() {
 	e.GET("/industries", handler.Industries)
 	e.GET("/faq", handler.FAQ)
 	e.GET("/privacy", handler.Privacy)
+	e.GET("/terms", handler.Terms)
 	e.GET("/export/csv", handler.ExportCSV)
 
 	// Setup free data import routes
