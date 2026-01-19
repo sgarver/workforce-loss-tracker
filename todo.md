@@ -20,7 +20,7 @@ Other site changes
   - [x] implement POST /layoffs for creating new layoffs
  - [x] fix tracker page industry column not displaying values
  - [x] implement industry determination system (WARN data + name patterns, 10-20% coverage; Clearbit API ready for 80-90% coverage)
- - [x] complete SDLC: integration tests, rollback automation
+ - [x] complete SDLC: integration tests, rollback automation, streamlined notifications
  - [x] broaden app scope to all industries (not just tech)
  - [hold] add banner image
  - [x] add contact page with footer link
