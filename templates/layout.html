@@ -282,6 +282,9 @@
         function toggleUserMenu() {
             const menu = document.getElementById('user-menu');
             const icon = document.getElementById('user-menu-icon');
+
+            if (!menu) return; // Guard against null menu
+
             const isHidden = menu.classList.contains('hidden');
             if (isHidden) {
                 menu.classList.remove('hidden');
