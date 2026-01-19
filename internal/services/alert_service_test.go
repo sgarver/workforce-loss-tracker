@@ -14,7 +14,7 @@ func TestAlertService_SendNewDataAlert_LogsFailure(t *testing.T) {
 	// Get test DB and run migrations
 	db, err := database.NewDB("layoff_tracker.db")
 	assert.NoError(t, err)
-	err = db.RunMigrations("../migrations")
+	err = db.RunMigrations("../../migrations")
 	assert.NoError(t, err)
 
 	// Insert test user
