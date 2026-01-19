@@ -71,37 +71,38 @@ jobs:
     steps:
     - run: echo "Production deployment triggered by ${{ github.actor }}"
 
-  notify:
-    needs: [test, security]
-    runs-on: ubuntu-latest
-    if: >
-      always() &&
-      (github.event_name == 'schedule' ||
-       (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'validate'))
-    steps:
-    - name: Send Status Email
-      uses: dawidd6/action-send-mail@v3
-      with:
-        server_address: smtp.gmail.com
-        server_port: 465
-        username: ${{ secrets.SMTP_USERNAME }}
-        password: ${{ secrets.SMTP_PASSWORD }}
-        from: ${{ secrets.SMTP_USERNAME }}
-        subject: >
-          Workforce Loss Tracker -
-          ${{ github.event_name == 'schedule' && 'Nightly' || 'Manual' }}
-          CI/CD Report
-        body: |
-          ${{ github.event_name == 'schedule' && 'Nightly' || 'Manual' }} CI/CD Report for ${{ github.repository }}
+  # notify:
+  #   needs: [test, security]
+  #   runs-on: ubuntu-latest
+  #   if: >
+  #     always() &&
+  #     (github.event_name == 'schedule' ||
+  #      (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'validate'))
+  #   steps:
+  #   - name: Send Status Email
+  #     uses: dawidd6/action-send-mail@v3
+  #     with:
+  #       server_address: smtp.gmail.com
+  #       server_port: 465
+  #       username: ${{ secrets.SMTP_USERNAME }}
+  #       password: ${{ secrets.SMTP_PASSWORD }}
+  #       from: ${{ secrets.SMTP_USERNAME }}
+  #       subject: >
+  #         Workforce Loss Tracker -
+  #         ${{ github.event_name == 'schedule' && 'Nightly' || 'Manual' }}
+  #         CI/CD Report
+  #       body: |
+  #         ${{ github.event_name == 'schedule' && 'Nightly' || 'Manual' }} CI/CD Report for ${{ github.repository }}
 
-          Status: ${{ job.status }}
-          Tests: ${{ needs.test.result }}
-          Security: ${{ needs.security.result }}
-          Coverage: View at ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+  #         Status: ${{ job.status }}
+  #         Tests: ${{ needs.test.result }}
+  #         Security: ${{ needs.security.result }}
+  #         Integration: ${{ needs.integration-test.result }}
+  #         Coverage: View at ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-          Commit: ${{ github.sha }}
-          Branch: ${{ github.ref_name }}
-          Triggered by: ${{ github.actor }}
+  #         Commit: ${{ github.sha }}
+  #         Branch: ${{ github.ref_name }}
+  #         Triggered by: ${{ github.actor }}
 
-          View details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        to: ${{ secrets.EMAIL_RECIPIENT }}
+  #         View details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+  #       to: ${{ secrets.EMAIL_RECIPIENT }}
