@@ -96,8 +96,14 @@ jobs:
         name: linux-binary-${{ github.sha }}
         path: layoff-tracker
 
+   deploy:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production' && github.actor == 'sgarver'
+    runs-on: ubuntu-latest
+    steps:
+    - run: echo "Production deployment triggered by ${{ github.actor }}"
+
   notify:
-    needs: [test, security, integration-test]
+    needs: [test, security]
     runs-on: ubuntu-latest
     if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     steps:
