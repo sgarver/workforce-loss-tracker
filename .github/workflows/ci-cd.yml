@@ -1,9 +1,9 @@
 name: CI/CD Pipeline
 on:
   push:
-    branches: [ main, staging ]
+    branches: [main, staging]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   schedule:
     - cron: '0 8 * * *'  # Daily at 8 AM UTC
   workflow_dispatch:
@@ -48,7 +48,9 @@ jobs:
         go-version: '1.21'
     - run: go mod tidy
     - name: Run Gosec Security Scanner
-      run: docker run --rm -v $(pwd):/app -w /app securecodewarrior/gosec:latest gosec -conf .gosec ./... || true
+      run: >
+        docker run --rm -v $(pwd):/app -w /app
+        securecodewarrior/gosec:latest gosec -conf .gosec ./... || true
 
   build:
     needs: [test, security]
@@ -68,7 +70,10 @@ jobs:
         path: layoff-tracker
 
   deploy:
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production' && github.actor == 'sgarver'
+    if: >
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.environment == 'production' &&
+      github.actor == 'sgarver'
     runs-on: ubuntu-latest
     steps:
     - run: echo "Production deployment triggered by ${{ github.actor }}"
@@ -76,7 +81,9 @@ jobs:
   notify:
     needs: [test, security]
     runs-on: ubuntu-latest
-    if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    if: >
+      always() &&
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     steps:
     - name: Send Status Email
       uses: dawidd6/action-send-mail@v3
@@ -85,7 +92,10 @@ jobs:
         server_port: 465
         username: ${{ secrets.SMTP_USERNAME }}
         password: ${{ secrets.SMTP_PASSWORD }}
-        subject: 'Workforce Loss Tracker - ${{ github.event_name == ''schedule'' && ''Nightly'' || ''Manual'' }} CI/CD Report'
+        subject: >
+          Workforce Loss Tracker -
+          ${{ github.event_name == 'schedule' && 'Nightly' || 'Manual' }}
+          CI/CD Report
         body: |
           ${{ github.event_name == 'schedule' && 'Nightly' || 'Manual' }} CI/CD Report for ${{ github.repository }}
 
