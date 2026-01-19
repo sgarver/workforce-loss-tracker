@@ -45,8 +45,8 @@ jobs:
     - run: go mod tidy
     - name: Run Gosec Security Scanner
       run: |
-        go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
-        gosec -conf .gosec -fmt json ./... || true
+        curl -L https://github.com/securecodewarrior/gosec/releases/download/v2.19.0/gosec_2.19.0_linux_amd64.tar.gz | tar -xz
+        ./gosec -conf .gosec -fmt json ./... || true
 
   build:
     needs: [test, security]
