@@ -115,6 +115,7 @@ func main() {
 		"templates/new_layoff.html",
 		"templates/industries.html",
 		"templates/faq.html",
+		"templates/privacy.html",
 		"templates/layout.html",
 		"templates/profile.html",
 		"templates/admin.html",
