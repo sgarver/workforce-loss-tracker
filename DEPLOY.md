@@ -5,17 +5,19 @@
 Deployments are handled via GitHub Actions workflow_dispatch.
 
 1. **Trigger Deploy:**
-   - Go to [Actions](https://github.com/sgarver/workforce-loss-tracker/actions)
-   - Select "CI/CD Pipeline"
-   - Click "Run workflow"
-   - Select `main` branch
-   - Choose `production` environment
-   - Run (admin only)
+    - Go to [Actions](https://github.com/sgarver/workforce-loss-tracker/actions)
+    - Select "Production Deploy"
+    - Click "Run workflow"
+    - Branch: `main`
+    - Action: `deploy`
+    - Run (admin only - sgarver)
 
 2. **Process:**
-   - CI validates code (tests, security, build)
-   - Binary uploaded to production server
-   - Service restarted with backup creation
+    - Workflow builds Linux binary
+    - Deploys to production server via SSH
+    - Creates timestamped backup before update
+    - Restarts systemd service
+    - Verifies health check (ping endpoint)
 
 ## Rollback
 
@@ -52,7 +54,7 @@ Contact admin for assistance.
 
 ## Staging Deployment
 
-Push to `staging` branch → CI runs → Manual review → Merge to `main` for production.
+Push to `staging` branch → "Staging CI" workflow runs tests/security/build → Manual review → Merge to `main` for production.
 
 ## Monitoring
 
