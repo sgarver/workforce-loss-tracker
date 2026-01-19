@@ -1,10 +1,9 @@
 name: Production Deploy
-name: Production Deploy
 on:
   push:
     branches: [ main ]
   schedule:
-    - cron: '0 8 * * *'  # Daily at 8 AM UTC
+    - cron: '0 8 * * *'
   workflow_dispatch:
     inputs:
       action:
@@ -80,4 +79,4 @@ jobs:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SERVER_SSH_KEY }}
-      script: "sudo systemctl stop layoff-tracker\ncp /opt/layoff-tracker/layoff-tracker /opt/layoff-tracker/layoff-tracker.backup.$(date +%Y%m%d_%H%M%S)\ncp layoff-tracker /opt/layoff-tracker/layoff-tracker\nsudo systemctl start layoff-tracker\nsleep 5\ncurl -f http://localhost:8080/ping || exit 1\necho \"Deployment successful!\""
+        script: "sudo systemctl stop layoff-tracker\ncp /opt/layoff-tracker/layoff-tracker /opt/layoff-tracker/layoff-tracker.backup.$(date +%Y%m%d_%H%M%S)\ncp layoff-tracker /opt/layoff-tracker/layoff-tracker\nsudo systemctl start layoff-tracker\nsleep 5\ncurl -f http://localhost:8080/ping || exit 1\necho \"Deployment successful!\""
