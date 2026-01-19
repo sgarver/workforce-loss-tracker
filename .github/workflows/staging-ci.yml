@@ -1,0 +1,79 @@
+name: Staging CI
+on:
+  push:
+    branches: [ staging ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    - run: go mod tidy
+    - run: go vet ./...
+    - run: |
+        go test ./... -v -coverprofile=coverage.out
+        go tool cover -html=coverage.out -o coverage.html
+    - uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.out
+        fail_ci_if_error: false
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    - run: go mod tidy
+    - name: Run Gosec Security Scanner
+      run: docker run --rm -v $(pwd):/app -w /app securecodewarrior/gosec:latest gosec -conf .gosec ./... || true
+
+  build:
+    needs: [test, security]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    - run: |
+        export CGO_ENABLED=1 GOOS=linux GOARCH=amd64
+        go build -o layoff-tracker .
+    - uses: actions/upload-artifact@v4
+      with:
+        name: linux-binary-${{ github.sha }}
+        path: layoff-tracker
+
+  integration-test:
+    needs: [build]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    - uses: actions/download-artifact@v4
+      with:
+        name: linux-binary-${{ github.sha }}
+    - run: |
+        chmod +x layoff-tracker
+        ./layoff-tracker &
+        SERVER_PID=$!
+        sleep 5
+        curl -f http://localhost:8080/ping || exit 1
+        curl -f http://localhost:8080/api/stats | jq '.total_layoffs' || exit 1
+        kill $SERVER_PID
