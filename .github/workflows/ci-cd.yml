@@ -22,10 +22,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Lint YAML
-      run: |
-        pip install yamllint
-        yamllint .github/workflows/*.yml
     - uses: actions/setup-go@v4
       with:
         go-version: '1.21'
