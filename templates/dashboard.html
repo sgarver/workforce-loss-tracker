@@ -64,6 +64,15 @@ let industryChart = null;
 
 // Load chart data from API
 let chartData = { monthlyTrend: [], industryBreakdown: [] };
+
+// Helper function to get week number
+function getWeekNumber(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
 let currentMonths = 1; // Default to 1 month
 
 async function loadChartData(months = currentMonths) {
@@ -110,7 +119,17 @@ function renderCharts() {
     }
 
     const monthlyCtx = monthlyTrendCanvas.getContext('2d');
-    const monthlyTrendData = chartData.monthlyTrend;
+    // Filter data to only include up to current week
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentWeek = getWeekNumber(now);
+
+    const monthlyTrendData = chartData.monthlyTrend.filter(item => {
+        const [year, week] = item.month.split('-').map(Number);
+        if (year < currentYear) return true;
+        if (year > currentYear) return false;
+        return week <= currentWeek;
+    });
 
     try {
         monthlyChart = new Chart(monthlyCtx, {

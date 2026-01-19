@@ -454,7 +454,7 @@ func (s *LayoffService) GetStatsWithMonths(months int) (*models.Stats, error) {
 			   COUNT(*) as count,
 			   COALESCE(SUM(employees_affected), 0) as employees
 		FROM layoffs
-		WHERE layoff_date >= ?
+		WHERE layoff_date >= ? AND layoff_date <= date('now')
 		GROUP BY strftime('%Y-%W', layoff_date)
 		ORDER BY period`
 
