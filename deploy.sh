@@ -65,6 +65,13 @@ fi
 
 cd /opt/layoff-tracker
 
+# Step 4.5: Backup current deployment
+if [[ -f "layoff-tracker" ]]; then
+    log "Creating backup of current binary..."
+    cp layoff-tracker layoff-tracker.backup.$(date +%Y%m%d_%H%M%S)
+    log "Backup created: layoff-tracker.backup.$(date +%Y%m%d_%H%M%S)"
+fi
+
 # Step 5: Configure Environment Variables
 log "Creating .env template..."
 if [[ ! -f ".env" ]]; then
