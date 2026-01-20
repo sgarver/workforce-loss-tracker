@@ -48,15 +48,20 @@ if [ -z "$RUN_ID" ]; then
     exit 1
 fi
 
+# Get the commit SHA for the run
+RUN_SHA=$(gh run view "$RUN_ID" --repo="$GITHUB_REPO" --json headSha --jq '.headSha')
+ARTIFACT_NAME="layoff-tracker-$RUN_SHA"
+
 echo "📥 Downloading artifact from run $RUN_ID..."
 # Download to temp directory to avoid conflicts
 TEMP_DIR=$(mktemp -d)
 PROJECT_DIR=$(pwd)
 echo "Temp dir: $TEMP_DIR"
 echo "Project dir: $PROJECT_DIR"
+echo "Artifact name: $ARTIFACT_NAME"
 
-if ! ( cd "$TEMP_DIR" && gh run download "$RUN_ID" --repo="$GITHUB_REPO" -n "layoff-tracker-$(gh run view "$RUN_ID" --repo="$GITHUB_REPO" --json headSha --jq '.headSha')" ); then
-    echo "❌ Artifact download failed. Trying with latest naming..."
+if ! ( cd "$TEMP_DIR" && gh run download "$RUN_ID" --repo="$GITHUB_REPO" -n "$ARTIFACT_NAME" ); then
+    echo "❌ Artifact download failed. Trying without specific name..."
     ( cd "$TEMP_DIR" && gh run download "$RUN_ID" --repo="$GITHUB_REPO" 2>/dev/null ) || {
         rm -rf "$TEMP_DIR"
         echo "❌ Could not find artifact. Make sure CI completed successfully."
@@ -64,14 +69,25 @@ if ! ( cd "$TEMP_DIR" && gh run download "$RUN_ID" --repo="$GITHUB_REPO" -n "lay
     }
 fi
 
-if [ ! -f "$TEMP_DIR/layoff-tracker" ]; then
+# Find the binary file (either in subdir or directly)
+BINARY_PATH=""
+if [ -f "$TEMP_DIR/layoff-tracker" ]; then
+    BINARY_PATH="$TEMP_DIR/layoff-tracker"
+elif [ -f "$TEMP_DIR/$ARTIFACT_NAME/layoff-tracker" ]; then
+    BINARY_PATH="$TEMP_DIR/$ARTIFACT_NAME/layoff-tracker"
+else
+    # Look for any layoff-tracker file in temp dir
+    BINARY_PATH=$(find "$TEMP_DIR" -name "layoff-tracker" -type f | head -1)
+fi
+
+if [ -z "$BINARY_PATH" ] || [ ! -f "$BINARY_PATH" ]; then
     rm -rf "$TEMP_DIR"
     echo "❌ Binary file 'layoff-tracker' not found after download."
     exit 1
 fi
 
 # Copy binary back to project directory
-cp "$TEMP_DIR/layoff-tracker" "$PROJECT_DIR/"
+cp "$BINARY_PATH" "$PROJECT_DIR/"
 rm -rf "$TEMP_DIR"
 
 echo "📥 Downloading artifact from run $RUN_ID..."
