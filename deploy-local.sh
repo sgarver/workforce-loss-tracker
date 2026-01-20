@@ -51,7 +51,10 @@ fi
 echo "📥 Downloading artifact from run $RUN_ID..."
 # Download to temp directory to avoid conflicts
 TEMP_DIR=$(mktemp -d)
+echo "Temp dir: $TEMP_DIR"
+echo "Current dir before cd: $(pwd)"
 cd "$TEMP_DIR"
+echo "Current dir after cd: $(pwd)"
 if ! gh run download "$RUN_ID" --repo="$GITHUB_REPO" -n "layoff-tracker-$(gh run view "$RUN_ID" --repo="$GITHUB_REPO" --json headSha --jq '.headSha')"; then
     echo "❌ Artifact download failed. Trying with latest naming..."
     gh run download "$RUN_ID" --repo="$GITHUB_REPO" 2>/dev/null || {
