@@ -619,8 +619,8 @@ func (s *FreeDataService) ClassifyCompanyIndustries() error {
 		// Update the database
 		_, err = s.db.Exec(`
 			UPDATE companies
-			SET industry = ?, updated_at = CURRENT_TIMESTAMP
-			WHERE id = ?`, industry, id)
+			SET industry = ?, industry_method = 'rule_based', industry_confidence = ?, industry_source = 'classifier_v1', updated_at = CURRENT_TIMESTAMP
+			WHERE id = ?`, industry, confidence, id)
 		if err != nil {
 			log.Printf("Error updating company %d: %v", id, err)
 			continue
@@ -636,19 +636,21 @@ func (s *FreeDataService) ClassifyCompanyIndustries() error {
 	return nil
 }
 
-// EnrichCompanyIndustries runs post-import enrichment using Clearbit API for companies without industries
+// EnrichCompanyIndustries runs post-import enrichment using Clearbit API for companies with high-confidence rule-based classifications or no industry
 func (s *FreeDataService) EnrichCompanyIndustries(clearbitAPIKey string) error {
 	if clearbitAPIKey == "" {
 		log.Println("Clearbit API key not provided, skipping enrichment")
 		return nil
 	}
 
-	// Get companies without industries
+	// Prioritize: high-confidence rule-based classifications, then companies without any industry
 	rows, err := s.db.Query(`
 		SELECT id, name, website
 		FROM companies
-		WHERE industry_id IS NULL AND website IS NOT NULL
-		LIMIT 100`) // Limit to avoid rate limits
+		WHERE (industry_method = 'rule_based' AND industry_confidence > 80)
+		   OR (industry IS NULL OR industry = '')
+		ORDER BY CASE WHEN industry_method = 'rule_based' AND industry_confidence > 80 THEN 1 ELSE 2 END
+		LIMIT 50`) // Smaller limit for Clearbit rate limits
 	if err != nil {
 		return fmt.Errorf("error querying companies without industries: %w", err)
 	}
@@ -676,20 +678,23 @@ func (s *FreeDataService) EnrichCompanyIndustries(clearbitAPIKey string) error {
 		}
 
 		// Query Clearbit API
-		industryID, err := s.queryClearbitIndustry(domain, clearbitAPIKey)
+		industry, confidence, err := s.queryClearbitIndustry(domain, clearbitAPIKey)
 		if err != nil {
 			log.Printf("Error querying Clearbit for %s: %v", domain, err)
 			continue
 		}
 
-		if industryID.Valid {
+		if industry != "" {
 			// Update company with industry
-			_, err = s.db.Exec("UPDATE companies SET industry_id = ? WHERE id = ?", industryID.Int64, id)
+			_, err = s.db.Exec(`
+				UPDATE companies
+				SET industry = ?, industry_method = 'clearbit', industry_confidence = ?, industry_source = 'clearbit_api'
+				WHERE id = ?`, industry, confidence, id)
 			if err != nil {
 				log.Printf("Error updating industry for company %d: %v", id, err)
 			} else {
 				enriched++
-				log.Printf("Enriched company %s (%s) with industry %d", name, domain, industryID.Int64)
+				log.Printf("Enriched company %s (%s) with industry %s (confidence %d)", name, domain, industry, confidence)
 			}
 		}
 
@@ -702,12 +707,12 @@ func (s *FreeDataService) EnrichCompanyIndustries(clearbitAPIKey string) error {
 }
 
 // queryClearbitIndustry queries Clearbit API for company industry
-func (s *FreeDataService) queryClearbitIndustry(domain, apiKey string) (sql.NullInt64, error) {
+func (s *FreeDataService) queryClearbitIndustry(domain, apiKey string) (string, int, error) {
 	url := fmt.Sprintf("https://company.clearbit.com/v2/companies/find?domain=%s", domain)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return sql.NullInt64{Valid: false}, err
+		return "", 0, err
 	}
 
 	req.Header.Set("Authorization", "Bearer "+apiKey)
@@ -715,12 +720,12 @@ func (s *FreeDataService) queryClearbitIndustry(domain, apiKey string) (sql.Null
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return sql.NullInt64{Valid: false}, err
+		return "", 0, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return sql.NullInt64{Valid: false}, fmt.Errorf("Clearbit API returned status %d", resp.StatusCode)
+		return "", 0, fmt.Errorf("Clearbit API returned status %d", resp.StatusCode)
 	}
 
 	var result struct {
@@ -730,16 +735,15 @@ func (s *FreeDataService) queryClearbitIndustry(domain, apiKey string) (sql.Null
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return sql.NullInt64{Valid: false}, err
+		return "", 0, err
 	}
 
 	if result.Category.Industry == "" {
-		return sql.NullInt64{Valid: false}, nil
+		return "", 0, nil
 	}
 
-	// Map Clearbit industry to our industry IDs
-	industryID := mapClearbitIndustryToID(result.Category.Industry)
-	return industryID, nil
+	// Return industry and high confidence for Clearbit
+	return result.Category.Industry, 95, nil
 }
 
 // mapClearbitIndustryToID maps Clearbit industry names to our industry IDs
