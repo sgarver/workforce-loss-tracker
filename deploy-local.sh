@@ -51,30 +51,27 @@ fi
 echo "📥 Downloading artifact from run $RUN_ID..."
 # Download to temp directory to avoid conflicts
 TEMP_DIR=$(mktemp -d)
+PROJECT_DIR=$(pwd)
 echo "Temp dir: $TEMP_DIR"
-echo "Current dir before cd: $(pwd)"
-cd "$TEMP_DIR"
-echo "Current dir after cd: $(pwd)"
-if ! gh run download "$RUN_ID" --repo="$GITHUB_REPO" -n "layoff-tracker-$(gh run view "$RUN_ID" --repo="$GITHUB_REPO" --json headSha --jq '.headSha')"; then
+echo "Project dir: $PROJECT_DIR"
+
+if ! ( cd "$TEMP_DIR" && gh run download "$RUN_ID" --repo="$GITHUB_REPO" -n "layoff-tracker-$(gh run view "$RUN_ID" --repo="$GITHUB_REPO" --json headSha --jq '.headSha')" ); then
     echo "❌ Artifact download failed. Trying with latest naming..."
-    gh run download "$RUN_ID" --repo="$GITHUB_REPO" 2>/dev/null || {
-        cd - > /dev/null
+    ( cd "$TEMP_DIR" && gh run download "$RUN_ID" --repo="$GITHUB_REPO" 2>/dev/null ) || {
         rm -rf "$TEMP_DIR"
         echo "❌ Could not find artifact. Make sure CI completed successfully."
         exit 1
     }
 fi
 
-if [ ! -f "layoff-tracker" ]; then
-    cd - > /dev/null
+if [ ! -f "$TEMP_DIR/layoff-tracker" ]; then
     rm -rf "$TEMP_DIR"
     echo "❌ Binary file 'layoff-tracker' not found after download."
     exit 1
 fi
 
 # Copy binary back to project directory
-cp layoff-tracker "$OLDPWD/"
-cd - > /dev/null
+cp "$TEMP_DIR/layoff-tracker" "$PROJECT_DIR/"
 rm -rf "$TEMP_DIR"
 
 echo "📥 Downloading artifact from run $RUN_ID..."
