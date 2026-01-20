@@ -60,9 +60,9 @@ echo "Temp dir: $TEMP_DIR"
 echo "Project dir: $PROJECT_DIR"
 echo "Artifact name: $ARTIFACT_NAME"
 
-if ! ( cd "$TEMP_DIR" && gh run download "$RUN_ID" --repo="$GITHUB_REPO" -n "$ARTIFACT_NAME" ); then
-    echo "❌ Artifact download failed. Trying without specific name..."
-    ( cd "$TEMP_DIR" && gh run download "$RUN_ID" --repo="$GITHUB_REPO" 2>/dev/null ) || {
+if ! ( pushd "$TEMP_DIR" > /dev/null && gh run download "$RUN_ID" --repo="$GITHUB_REPO" -n "$ARTIFACT_NAME" && popd > /dev/null ); then
+    echo "❌ Artifact download failed. Trying with latest naming..."
+    ( pushd "$TEMP_DIR" > /dev/null && gh run download "$RUN_ID" --repo="$GITHUB_REPO" 2>/dev/null && popd > /dev/null ) || {
         rm -rf "$TEMP_DIR"
         echo "❌ Could not find artifact. Make sure CI completed successfully."
         exit 1
