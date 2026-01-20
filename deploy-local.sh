@@ -15,7 +15,7 @@ if [[ "$SERVER_HOST" != *:* ]]; then
     SCP_TARGET="$SSH_TARGET"
 else
     echo "📝 Using IPv6 address: $SERVER_HOST"
-    SSH_TARGET="linuxuser@$SERVER_HOST"
+    SSH_TARGET="linuxuser@[$SERVER_HOST]"
     SCP_TARGET="$SSH_TARGET"
 fi
 
