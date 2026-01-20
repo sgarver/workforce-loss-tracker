@@ -1113,6 +1113,33 @@ func SetupFreeDataRoutes(e *echo.Echo, db *database.DB) {
 		return c.JSON(200, map[string]string{"message": "Company industry classification completed"})
 	})
 
+	e.POST("/companies/:id/verify-industry", func(c echo.Context) error {
+		id := c.Param("id")
+		companyID, err := strconv.Atoi(id)
+		if err != nil {
+			return c.JSON(400, map[string]string{"error": "Invalid company ID"})
+		}
+
+		var req struct {
+			Verified   bool   `json:"verified"`
+			VerifiedBy string `json:"verified_by"`
+		}
+		if err := c.Bind(&req); err != nil {
+			return c.JSON(400, map[string]string{"error": "Invalid request body"})
+		}
+
+		// Update verification status
+		_, err = freeDataService.db.Exec(`
+			UPDATE companies
+			SET industry_verified = ?, industry_verified_by = ?, industry_verified_at = CURRENT_TIMESTAMP
+			WHERE id = ?`, req.Verified, req.VerifiedBy, companyID)
+		if err != nil {
+			return c.JSON(500, map[string]string{"error": err.Error()})
+		}
+
+		return c.JSON(200, map[string]string{"message": "Industry verification updated"})
+	})
+
 	// Import stats
 	e.GET("/import/stats", func(c echo.Context) error {
 		stats, err := freeDataService.GetImportStats()
