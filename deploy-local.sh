@@ -49,15 +49,30 @@ if [ -z "$RUN_ID" ]; then
 fi
 
 echo "📥 Downloading artifact from run $RUN_ID..."
-# Remove any existing binary
-rm -f layoff-tracker
+# Download to temp directory to avoid conflicts
+TEMP_DIR=$(mktemp -d)
+cd "$TEMP_DIR"
 if ! gh run download "$RUN_ID" --repo="$GITHUB_REPO" -n "layoff-tracker-$(gh run view "$RUN_ID" --repo="$GITHUB_REPO" --json headSha --jq '.headSha')"; then
     echo "❌ Artifact download failed. Trying with latest naming..."
     gh run download "$RUN_ID" --repo="$GITHUB_REPO" 2>/dev/null || {
+        cd - > /dev/null
+        rm -rf "$TEMP_DIR"
         echo "❌ Could not find artifact. Make sure CI completed successfully."
         exit 1
     }
 fi
+
+if [ ! -f "layoff-tracker" ]; then
+    cd - > /dev/null
+    rm -rf "$TEMP_DIR"
+    echo "❌ Binary file 'layoff-tracker' not found after download."
+    exit 1
+fi
+
+# Copy binary back to project directory
+cp layoff-tracker "$OLDPWD/"
+cd - > /dev/null
+rm -rf "$TEMP_DIR"
 
 echo "📥 Downloading artifact from run $RUN_ID..."
 if ! gh run download "$RUN_ID" --repo="$GITHUB_REPO" -n "layoff-tracker-$(gh run view "$RUN_ID" --repo="$GITHUB_REPO" --json headSha --jq '.headSha')"; then
