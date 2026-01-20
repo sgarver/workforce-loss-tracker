@@ -4,7 +4,7 @@ set -e
 echo "🚀 Starting local deployment..."
 
 # Configuration - can be overridden with environment variables
-SERVER_HOST="${SERVER_HOST:-2001:19f0:5400:2f1e:5400:05ff:fee4:2ad6}"
+SERVER_HOST="${SERVER_HOST:-workforceloss.com}"
 SSH_KEY_PATH="${SSH_KEY_PATH:-$HOME/.ssh/github_actions_key}"
 GITHUB_REPO="${GITHUB_REPO:-sgarver/workforce-loss-tracker}"
 
@@ -53,22 +53,48 @@ RUN_SHA=$(gh run view "$RUN_ID" --repo="$GITHUB_REPO" --json headSha --jq '.head
 ARTIFACT_NAME="layoff-tracker-$RUN_SHA"
 
 echo "📥 Downloading artifact from run $RUN_ID..."
-# Remove any existing binary to avoid conflicts
-rm -f "$PROJECT_DIR/layoff-tracker"
-# Download to temp directory to avoid conflicts
+# Download to temp directory
 TEMP_DIR=$(mktemp -d)
 PROJECT_DIR=$(pwd)
 echo "Temp dir: $TEMP_DIR"
 echo "Project dir: $PROJECT_DIR"
 echo "Artifact name: $ARTIFACT_NAME"
 
-# Get artifact ID
+# Get artifact ID and download directly
 ARTIFACT_ID=$(gh api "/repos/$GITHUB_REPO/actions/runs/$RUN_ID/artifacts" --jq '.artifacts[] | select(.name == "'"$ARTIFACT_NAME"'") | .id')
 
 if [ -z "$ARTIFACT_ID" ]; then
-    echo "❌ Artifact ID not found. Trying fallback download..."
-    ( pushd "$TEMP_DIR" > /dev/null && gh run download "$RUN_ID" --repo="$GITHUB_REPO" 2>/dev/null && popd > /dev/null ) || {
-        rm -rf "$TEMP_DIR"
+    rm -rf "$TEMP_DIR"
+    echo "❌ Artifact not found. Make sure CI completed successfully."
+    exit 1
+fi
+
+echo "📦 Downloading artifact $ARTIFACT_ID..."
+if ! gh api "/repos/$GITHUB_REPO/actions/artifacts/$ARTIFACT_ID/zip" > "$TEMP_DIR/artifact.zip"; then
+    rm -rf "$TEMP_DIR"
+    echo "❌ Artifact download failed."
+    exit 1
+fi
+
+# Extract in temp directory
+if ! unzip -q "$TEMP_DIR/artifact.zip" -d "$TEMP_DIR"; then
+    rm -rf "$TEMP_DIR"
+    echo "❌ Artifact extraction failed."
+    exit 1
+fi
+
+# Find the binary file
+BINARY_PATH=$(find "$TEMP_DIR" -name "layoff-tracker" -type f | head -1)
+
+if [ -z "$BINARY_PATH" ] || [ ! -f "$BINARY_PATH" ]; then
+    rm -rf "$TEMP_DIR"
+    echo "❌ Binary file 'layoff-tracker' not found after download."
+    exit 1
+fi
+
+# Copy binary to project directory
+cp "$BINARY_PATH" "$PROJECT_DIR/"
+rm -rf "$TEMP_DIR"
         echo "❌ Could not find artifact. Make sure CI completed successfully."
         exit 1
     }
