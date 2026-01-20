@@ -598,7 +598,7 @@ func (h *Handler) ExportCSV(c echo.Context) error {
 		}
 		line := fmt.Sprintf(`"%s","%s",%d,"%s","%s","%s"`,
 			item.Company.Name,
-			item.Company.Industry.Name,
+			item.Company.Industry,
 			item.EmployeesAffected,
 			item.LayoffDate.Format("2006-01-02"),
 			sourceURL,

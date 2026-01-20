@@ -143,9 +143,7 @@ func (s *LayoffService) GetLayoffs(params models.FilterParams) (*models.Paginate
 	var layoffs []*models.Layoff
 	for rows.Next() {
 		layoff := &models.Layoff{
-			Company: &models.Company{
-				Industry: &models.Industry{},
-			},
+			Company: &models.Company{},
 		}
 
 		var employeesAffected sql.NullInt64
@@ -206,30 +204,20 @@ func (s *LayoffService) GetLayoffs(params models.FilterParams) (*models.Paginate
 			layoff.Company.UpdatedAt = time.Now()
 		}
 		if industryID.Valid {
-			layoff.Company.Industry.ID = int(industryID.Int64)
-		}
-		layoff.Company.Industry.Name = industryName.String
-		layoff.Company.Industry.Slug = industrySlug.String
-		layoff.Company.Industry.CreatedAt = time.Now()
-
-		if employeeCount.Valid && employeeCount.Int64 > 0 {
-			val := int(employeeCount.Int64)
-			layoff.Company.EmployeeCount = &val
-		}
-		if website.Valid {
-			layoff.Company.Website = &website.String
-		}
-		if logoURL.Valid {
-			layoff.Company.LogoURL = &logoURL.String
-		}
-		if industryID.Valid {
-			layoff.Company.Industry.ID = int(industryID.Int64)
+			layoff.Company.IndustryID = int(industryID.Int64)
 		}
 		if industryName.Valid {
-			layoff.Company.Industry.Name = industryName.String
+			layoff.Company.Industry = industryName.String
 		}
-		if industrySlug.Valid {
-			layoff.Company.Industry.Slug = industrySlug.String
+
+		if employeeCount.Valid && employeeCount.Int64 > 0 {
+			layoff.Company.EmployeeCount = int(employeeCount.Int64)
+		}
+		if website.Valid {
+			layoff.Company.Website = website.String
+		}
+		if logoURL.Valid {
+			layoff.Company.LogoURL = logoURL.String
 		}
 		if err != nil {
 			return nil, fmt.Errorf("error scanning layoff row: %w", err)
@@ -261,9 +249,7 @@ func (s *LayoffService) GetLayoff(id int) (*models.Layoff, error) {
 		WHERE l.id = $1`
 
 	layoff := &models.Layoff{
-		Company: &models.Company{
-			Industry: &models.Industry{},
-		},
+		Company: &models.Company{},
 	}
 
 	var logoURL sql.NullString
@@ -292,23 +278,19 @@ func (s *LayoffService) GetLayoff(id int) (*models.Layoff, error) {
 	)
 
 	if website.Valid {
-		layoff.Company.Website = &website.String
+		layoff.Company.Website = website.String
 	}
 	if logoURL.Valid {
-		layoff.Company.LogoURL = &logoURL.String
+		layoff.Company.LogoURL = logoURL.String
 	}
 	if employeeCount.Valid && employeeCount.Int64 > 0 {
-		val := int(employeeCount.Int64)
-		layoff.Company.EmployeeCount = &val
+		layoff.Company.EmployeeCount = int(employeeCount.Int64)
 	}
 	if industryID.Valid {
-		layoff.Company.Industry.ID = int(industryID.Int64)
+		layoff.Company.IndustryID = int(industryID.Int64)
 	}
 	if industryName.Valid {
-		layoff.Company.Industry.Name = industryName.String
-	}
-	if industrySlug.Valid {
-		layoff.Company.Industry.Slug = industrySlug.String
+		layoff.Company.Industry = industryName.String
 	}
 
 	if err != nil {
@@ -603,9 +585,7 @@ func (s *LayoffService) GetCurrentLayoffs() (*models.PaginatedResult, error) {
 	var layoffs []*models.Layoff
 	for rows.Next() {
 		layoff := &models.Layoff{
-			Company: &models.Company{
-				Industry: &models.Industry{},
-			},
+			Company: &models.Company{},
 		}
 
 		var logoURL sql.NullString
@@ -624,23 +604,19 @@ func (s *LayoffService) GetCurrentLayoffs() (*models.PaginatedResult, error) {
 		)
 
 		if employeeCount.Valid && employeeCount.Int64 > 0 {
-			val := int(employeeCount.Int64)
-			layoff.Company.EmployeeCount = &val
+			layoff.Company.EmployeeCount = int(employeeCount.Int64)
 		}
 		if website.Valid {
-			layoff.Company.Website = &website.String
+			layoff.Company.Website = website.String
 		}
 		if logoURL.Valid {
-			layoff.Company.LogoURL = &logoURL.String
+			layoff.Company.LogoURL = logoURL.String
 		}
 		if industryID.Valid {
-			layoff.Company.Industry.ID = int(industryID.Int64)
+			layoff.Company.IndustryID = int(industryID.Int64)
 		}
 		if industryName.Valid {
-			layoff.Company.Industry.Name = industryName.String
-		}
-		if industrySlug.Valid {
-			layoff.Company.Industry.Slug = industrySlug.String
+			layoff.Company.Industry = industryName.String
 		}
 		if err != nil {
 			return nil, fmt.Errorf("error scanning layoff row: %w", err)
