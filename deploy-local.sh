@@ -53,6 +53,8 @@ RUN_SHA=$(gh run view "$RUN_ID" --repo="$GITHUB_REPO" --json headSha --jq '.head
 ARTIFACT_NAME="layoff-tracker-$RUN_SHA"
 
 echo "📥 Downloading artifact from run $RUN_ID..."
+# Remove any existing binary to avoid conflicts
+rm -f "$PROJECT_DIR/layoff-tracker"
 # Download to temp directory to avoid conflicts
 TEMP_DIR=$(mktemp -d)
 PROJECT_DIR=$(pwd)
