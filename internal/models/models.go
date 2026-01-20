@@ -35,6 +35,7 @@ type Company struct {
 	ID                 int        `json:"id"`
 	Name               string     `json:"name"`
 	EmployeeCount      int        `json:"employee_count,omitempty"`
+	IndustryID         int        `json:"industry_id,omitempty"`
 	Industry           string     `json:"industry,omitempty"`
 	IndustryMethod     string     `json:"industry_method,omitempty"`
 	IndustryConfidence int        `json:"industry_confidence,omitempty"`
