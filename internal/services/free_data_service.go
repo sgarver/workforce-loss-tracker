@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"layoff-tracker/internal/classifier"
 	"layoff-tracker/internal/database"
 	"layoff-tracker/internal/models"
 	"log"
@@ -582,6 +583,59 @@ func MapWARNIndustryToID(warnIndustry string) sql.NullInt64 {
 	return sql.NullInt64{Valid: false} // No match found
 }
 
+// ClassifyCompanyIndustries runs rule-based classification for companies without industries
+func (s *FreeDataService) ClassifyCompanyIndustries() error {
+	classifier := classifier.NewIndustryClassifier()
+
+	// Get companies without industry classification
+	rows, err := s.db.Query(`
+		SELECT id, name
+		FROM companies
+		WHERE industry IS NULL OR industry = ''
+		LIMIT 1000`) // Process in batches
+	if err != nil {
+		return fmt.Errorf("error querying companies without industries: %w", err)
+	}
+	defer rows.Close()
+
+	updated := 0
+	for rows.Next() {
+		var id int
+		var name string
+		err := rows.Scan(&id, &name)
+		if err != nil {
+			log.Printf("Error scanning company: %v", err)
+			continue
+		}
+
+		// Classify the company
+		industry, confidence := classifier.ClassifyIndustry(name)
+
+		// Skip if classification is unknown or low confidence
+		if industry == "Unknown" || confidence < 20 {
+			continue
+		}
+
+		// Update the database
+		_, err = s.db.Exec(`
+			UPDATE companies
+			SET industry = ?, updated_at = CURRENT_TIMESTAMP
+			WHERE id = ?`, industry, id)
+		if err != nil {
+			log.Printf("Error updating company %d: %v", id, err)
+			continue
+		}
+
+		updated++
+		if updated%100 == 0 {
+			log.Printf("Classified %d companies so far", updated)
+		}
+	}
+
+	log.Printf("Successfully classified %d companies using rule-based classifier", updated)
+	return nil
+}
+
 // EnrichCompanyIndustries runs post-import enrichment using Clearbit API for companies without industries
 func (s *FreeDataService) EnrichCompanyIndustries(clearbitAPIKey string) error {
 	if clearbitAPIKey == "" {
@@ -1045,6 +1099,14 @@ func SetupFreeDataRoutes(e *echo.Echo, db *database.DB) {
 			return c.JSON(500, map[string]string{"error": err.Error()})
 		}
 		return c.JSON(200, map[string]string{"message": "Company industry enrichment completed"})
+	})
+
+	e.POST("/import/classify", func(c echo.Context) error {
+		err := freeDataService.ClassifyCompanyIndustries()
+		if err != nil {
+			return c.JSON(500, map[string]string{"error": err.Error()})
+		}
+		return c.JSON(200, map[string]string{"message": "Company industry classification completed"})
 	})
 
 	// Import stats
