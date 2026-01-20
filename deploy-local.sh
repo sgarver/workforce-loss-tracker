@@ -11,13 +11,11 @@ GITHUB_REPO="${GITHUB_REPO:-sgarver/workforce-loss-tracker}"
 # Allow domain name for SERVER_HOST
 if [[ "$SERVER_HOST" != *:* ]]; then
     echo "📝 Using domain name: $SERVER_HOST"
-    # For domain names, don't use brackets
     SSH_TARGET="linuxuser@$SERVER_HOST"
     SCP_TARGET="$SSH_TARGET"
 else
     echo "📝 Using IPv6 address: $SERVER_HOST"
-    # For IPv6, use brackets
-    SSH_TARGET="linuxuser@[$SERVER_HOST]"
+    SSH_TARGET="linuxuser@$SERVER_HOST"
     SCP_TARGET="$SSH_TARGET"
 fi
 
@@ -46,9 +44,19 @@ echo "📦 Finding latest successful CI run..."
 RUN_ID=$(gh run list --workflow="Production CI" --repo="$GITHUB_REPO" --status=success --limit=1 --json databaseId --jq '.[0].databaseId')
 
 if [ -z "$RUN_ID" ]; then
-    echo "❌ No successful CI runs found. Please ensure CI has passed on GitHub."
-    echo "   Check: https://github.com/$GITHUB_REPO/actions"
+    echo "❌ No successful CI runs found. Please ensure CI has passed."
     exit 1
+fi
+
+echo "📥 Downloading artifact from run $RUN_ID..."
+# Remove any existing binary
+rm -f layoff-tracker
+if ! gh run download "$RUN_ID" --repo="$GITHUB_REPO" -n "layoff-tracker-$(gh run view "$RUN_ID" --repo="$GITHUB_REPO" --json headSha --jq '.headSha')"; then
+    echo "❌ Artifact download failed. Trying with latest naming..."
+    gh run download "$RUN_ID" --repo="$GITHUB_REPO" 2>/dev/null || {
+        echo "❌ Could not find artifact. Make sure CI completed successfully."
+        exit 1
+    }
 fi
 
 echo "📥 Downloading artifact from run $RUN_ID..."
