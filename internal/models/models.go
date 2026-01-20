@@ -32,15 +32,20 @@ type ImportHistory struct {
 }
 
 type Company struct {
-	ID            int       `json:"id"`
-	Name          string    `json:"name"`
-	EmployeeCount *int      `json:"employee_count"`
-	IndustryID    *int      `json:"industry_id"`
-	Industry      *Industry `json:"industry,omitempty"`
-	Website       *string   `json:"website"`
-	LogoURL       *string   `json:"logo_url"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	ID                 int        `json:"id"`
+	Name               string     `json:"name"`
+	EmployeeCount      int        `json:"employee_count,omitempty"`
+	Industry           string     `json:"industry,omitempty"`
+	IndustryMethod     string     `json:"industry_method,omitempty"`
+	IndustryConfidence int        `json:"industry_confidence,omitempty"`
+	IndustryVerified   bool       `json:"industry_verified,omitempty"`
+	IndustryVerifiedBy string     `json:"industry_verified_by,omitempty"`
+	IndustrySource     string     `json:"industry_source,omitempty"`
+	IndustryVerifiedAt *time.Time `json:"industry_verified_at,omitempty"`
+	Website            string     `json:"website,omitempty"`
+	LogoURL            string     `json:"logo_url,omitempty"`
+	CreatedAt          time.Time  `json:"created_at"`
+	UpdatedAt          time.Time  `json:"updated_at"`
 }
 
 type Layoff struct {
