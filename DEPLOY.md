@@ -12,13 +12,17 @@ Deployments use a hybrid approach: automated CI on GitHub + manual local deploym
 1. **Prerequisites:**
    - GitHub CLI installed: `gh auth login`
    - SSH key at `~/.ssh/github_actions_key` (or set `SSH_KEY_PATH`)
-   - Set environment variables:
-     ```bash
-     export SERVER_HOST="2001:19f0:5400:2f1e:5400:05ff:fee4:2ad6"
-     export GITHUB_SHA="latest"  # or specific commit SHA
-     ```
 
-2. **Run Deployment:**
+2. **Configure (Optional):**
+   Set environment variables for customization:
+   ```bash
+   export SERVER_HOST="workforceloss.com"  # or IPv6 address
+   export SSH_KEY_PATH="$HOME/.ssh/my_key"  # if different location
+   export GITHUB_REPO="sgarver/workforce-loss-tracker"  # if different repo
+   ```
+   Defaults are provided for common setup.
+
+3. **Run Deployment:**
    ```bash
    ./deploy-local.sh
    ```
