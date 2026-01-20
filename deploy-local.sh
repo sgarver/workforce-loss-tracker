@@ -75,7 +75,7 @@ if [ -z "$ARTIFACT_ID" ]; then
 else
     # Download artifact zip directly
     echo "📦 Downloading artifact $ARTIFACT_ID..."
-    if ! curl -L "https://api.github.com/repos/$GITHUB_REPO/actions/artifacts/$ARTIFACT_ID/zip" -o "$TEMP_DIR/artifact.zip" 2>/dev/null; then
+    if ! gh api "/repos/$GITHUB_REPO/actions/artifacts/$ARTIFACT_ID/zip" > "$TEMP_DIR/artifact.zip" 2>/dev/null; then
         rm -rf "$TEMP_DIR"
         echo "❌ Artifact download failed."
         exit 1
