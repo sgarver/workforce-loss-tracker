@@ -10,16 +10,27 @@ Deployments use a hybrid approach: automated CI on GitHub + manual local deploym
 
 ### Local Deployment
 1. **Prerequisites:**
-   - GitHub CLI installed: `gh auth login`
-   - SSH key at `~/.ssh/github_actions_key` (or set `SSH_KEY_PATH`)
+   - GitHub CLI installed and authenticated: `gh auth login`
+   - SSH key for server access (default: `~/.ssh/github_actions_key`)
 
 2. **Configure (Optional):**
-   Set environment variables for customization:
+   The script uses sensible defaults, but you can customize:
    ```bash
-   export SERVER_HOST="workforceloss.com"  # or IPv6 address
-   export SSH_KEY_PATH="$HOME/.ssh/my_key"  # if different location
+   export SERVER_HOST="workforceloss.com"  # default: workforceloss.com
+   export SSH_KEY_PATH="$HOME/.ssh/my_key"  # if different key location
    export GITHUB_REPO="sgarver/workforce-loss-tracker"  # if different repo
    ```
+
+3. **Run Deployment:**
+   ```bash
+   ./deploy-local.sh
+   ```
+
+   **What it does:**
+   - Finds the latest successful CI run
+   - Downloads the built binary artifact
+   - Deploys to server with backup and health check
+   - Automatic rollback on failure
    Defaults are provided for common setup.
 
 3. **Run Deployment:**
