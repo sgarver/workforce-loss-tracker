@@ -62,23 +62,40 @@ echo "Temp dir: $TEMP_DIR"
 echo "Project dir: $PROJECT_DIR"
 echo "Artifact name: $ARTIFACT_NAME"
 
-if ! ( pushd "$TEMP_DIR" > /dev/null && gh run download "$RUN_ID" --repo="$GITHUB_REPO" -n "$ARTIFACT_NAME" && popd > /dev/null ); then
-    echo "❌ Artifact download failed. Trying with latest naming..."
+# Get artifact ID
+ARTIFACT_ID=$(gh api "/repos/$GITHUB_REPO/actions/runs/$RUN_ID/artifacts" --jq '.artifacts[] | select(.name == "'"$ARTIFACT_NAME"'") | .id')
+
+if [ -z "$ARTIFACT_ID" ]; then
+    echo "❌ Artifact ID not found. Trying fallback download..."
     ( pushd "$TEMP_DIR" > /dev/null && gh run download "$RUN_ID" --repo="$GITHUB_REPO" 2>/dev/null && popd > /dev/null ) || {
         rm -rf "$TEMP_DIR"
         echo "❌ Could not find artifact. Make sure CI completed successfully."
         exit 1
     }
+else
+    # Download artifact zip directly
+    echo "📦 Downloading artifact $ARTIFACT_ID..."
+    if ! curl -L "https://api.github.com/repos/$GITHUB_REPO/actions/artifacts/$ARTIFACT_ID/zip" -o "$TEMP_DIR/artifact.zip" 2>/dev/null; then
+        rm -rf "$TEMP_DIR"
+        echo "❌ Artifact download failed."
+        exit 1
+    fi
+
+    # Extract in temp directory
+    if ! unzip -q "$TEMP_DIR/artifact.zip" -d "$TEMP_DIR" 2>/dev/null; then
+        rm -rf "$TEMP_DIR"
+        echo "❌ Artifact extraction failed."
+        exit 1
+    fi
 fi
 
-# Find the binary file (either in subdir or directly)
+# Find the binary file
 BINARY_PATH=""
 if [ -f "$TEMP_DIR/layoff-tracker" ]; then
     BINARY_PATH="$TEMP_DIR/layoff-tracker"
 elif [ -f "$TEMP_DIR/$ARTIFACT_NAME/layoff-tracker" ]; then
     BINARY_PATH="$TEMP_DIR/$ARTIFACT_NAME/layoff-tracker"
 else
-    # Look for any layoff-tracker file in temp dir
     BINARY_PATH=$(find "$TEMP_DIR" -name "layoff-tracker" -type f | head -1)
 fi
 
