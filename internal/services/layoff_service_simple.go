@@ -130,7 +130,7 @@ func (s *LayoffService) GetLayoffs(params models.FilterParams) (*models.Paginate
 	// Get paginated results
 	query := fmt.Sprintf(`
 		SELECT l.id, l.company_id, l.employees_affected, l.layoff_date,
-			l.source_url, l.notes, l.status, l.created_at,
+			l.source_type, l.notes, l.status, l.created_at,
 			c.id, c.name, c.employee_count, c.website, c.logo_url, c.created_at, c.updated_at,
 			c.industry
 		FROM layoffs l
@@ -172,7 +172,7 @@ func (s *LayoffService) GetLayoffs(params models.FilterParams) (*models.Paginate
 
 		err = rows.Scan(
 			&layoff.ID, &layoffCompanyID, &employeesAffected, &layoffDate,
-			&layoff.SourceURL, &layoff.Notes, &layoff.Status, &createdAt,
+			&layoff.SourceType, &layoff.Notes, &layoff.Status, &createdAt,
 			&companyID, &companyName, &employeeCount,
 			&website, &logoURL, &companyCreatedAt, &companyUpdatedAt,
 			&industry,
@@ -257,7 +257,7 @@ func (s *LayoffService) GetLayoffs(params models.FilterParams) (*models.Paginate
 func (s *LayoffService) GetLayoff(layoffID int) (*models.Layoff, error) {
 	query := `
 		SELECT
-			l.id, l.company_id, l.employees_affected, l.layoff_date, l.source_url, l.notes, l.status, l.created_at,
+			l.id, l.company_id, l.employees_affected, l.layoff_date, l.source_type, l.notes, l.status, l.created_at,
 			c.id, c.name, c.employee_count, c.website, c.logo_url, c.created_at, c.updated_at,
 			c.industry
 		FROM layoffs l
@@ -273,7 +273,7 @@ func (s *LayoffService) GetLayoff(layoffID int) (*models.Layoff, error) {
 	var industry sql.NullString
 	var employeeCount sql.NullInt64
 	var layoffDate sql.NullTime
-	var sourceURL sql.NullString
+	var sourceType string
 	var notes sql.NullString
 	var status sql.NullString
 	var createdAt sql.NullTime
@@ -294,7 +294,7 @@ func (s *LayoffService) GetLayoff(layoffID int) (*models.Layoff, error) {
 
 	err = rows.Scan(
 		&layoff.ID, &layoff.CompanyID, &layoff.EmployeesAffected, &layoffDate,
-		&sourceURL, &notes, &status, &createdAt,
+		&sourceType, &notes, &status, &createdAt,
 		&companyID, &companyName, &employeeCount,
 		&website, &logoURL, &companyCreatedAt, &companyUpdatedAt,
 		&industry,
@@ -370,7 +370,7 @@ func (s *LayoffService) CreateLayoff(layoff *models.Layoff) error {
 	}
 
 	query := `
-		INSERT INTO layoffs (company_id, employees_affected, layoff_date, source_url, notes, status)
+		INSERT INTO layoffs (company_id, employees_affected, layoff_date, source_type, notes, status)
 		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, created_at`
 
@@ -378,7 +378,7 @@ func (s *LayoffService) CreateLayoff(layoff *models.Layoff) error {
 		layoff.CompanyID,
 		layoff.EmployeesAffected,
 		layoff.LayoffDate,
-		layoff.SourceURL,
+		layoff.SourceType,
 		layoff.Notes,
 		status,
 	).Scan(&layoff.ID, &layoff.CreatedAt)
@@ -783,7 +783,7 @@ func (s *LayoffService) GetCurrentLayoffs() (*models.PaginatedResult, error) {
 
 	query := `
 		SELECT
-			l.id, l.company_id, l.employees_affected, l.layoff_date, l.source_url, l.notes, l.status, l.created_at,
+			l.id, l.company_id, l.employees_affected, l.layoff_date, l.source_type, l.notes, l.status, l.created_at,
 			c.id, c.name, c.employee_count, c.website, c.logo_url, c.created_at, c.updated_at,
 			c.industry
 		FROM layoffs l
@@ -809,7 +809,7 @@ func (s *LayoffService) GetCurrentLayoffs() (*models.PaginatedResult, error) {
 		var industry sql.NullString
 		var employeeCount sql.NullInt64
 		var layoffDate sql.NullTime
-		var sourceURL sql.NullString
+		var sourceType string
 		var notes sql.NullString
 		var status sql.NullString
 		var createdAt sql.NullTime
@@ -821,7 +821,7 @@ func (s *LayoffService) GetCurrentLayoffs() (*models.PaginatedResult, error) {
 
 		err := rows.Scan(
 			&layoff.ID, &layoffCompanyID, &employeeCount, &layoffDate,
-			&sourceURL, &notes, &status, &createdAt,
+			&sourceType, &notes, &status, &createdAt,
 			&companyID, &companyName, &layoff.Company.EmployeeCount,
 			&website, &logoURL, &companyCreatedAt, &companyUpdatedAt,
 			&industry,
@@ -841,6 +841,7 @@ func (s *LayoffService) GetCurrentLayoffs() (*models.PaginatedResult, error) {
 		} else {
 			layoff.CreatedAt = time.Now()
 		}
+		layoff.SourceType = sourceType
 		layoff.Company.ID = int(companyID.Int64)
 		if companyName.Valid {
 			layoff.Company.Name = companyName.String
@@ -982,7 +983,7 @@ func (s *LayoffService) RejectLayoff(id int) error {
 
 func (s *LayoffService) GetPendingLayoffs() ([]*models.Layoff, error) {
 	rows, err := s.db.Query(`
-		SELECT l.id, l.company_id, l.employees_affected, l.layoff_date, l.source_url, l.notes, l.status, l.created_at,
+		SELECT l.id, l.company_id, l.employees_affected, l.layoff_date, l.source_type, l.notes, l.status, l.created_at,
 		       c.name, c.canonical_name, c.website, c.employee_count, c.industry_id
 		FROM layoffs l
 		JOIN companies c ON l.company_id = c.id
@@ -1000,7 +1001,7 @@ func (s *LayoffService) GetPendingLayoffs() ([]*models.Layoff, error) {
 		var companyName sql.NullString
 		var canonicalName sql.NullString
 		err := rows.Scan(
-			&layoff.ID, &layoff.Company.ID, &layoff.EmployeesAffected, &layoff.LayoffDate, &layoff.SourceURL, &layoff.Notes, &layoff.Status, &layoff.CreatedAt,
+			&layoff.ID, &layoff.Company.ID, &layoff.EmployeesAffected, &layoff.LayoffDate, &layoff.SourceType, &layoff.Notes, &layoff.Status, &layoff.CreatedAt,
 			&companyName, &canonicalName, &layoff.Company.Website, &layoff.Company.EmployeeCount, &layoff.Company.IndustryID,
 		)
 		if err != nil {
@@ -1020,7 +1021,7 @@ func (s *LayoffService) GetPendingLayoffs() ([]*models.Layoff, error) {
 
 func (s *LayoffService) GetAllLayoffs() ([]*models.Layoff, error) {
 	rows, err := s.db.Query(`
-		SELECT l.id, l.company_id, l.employees_affected, l.layoff_date, l.source_url, l.notes, l.status, l.created_at
+		SELECT l.id, l.company_id, l.employees_affected, l.layoff_date, l.source_type, l.notes, l.status, l.created_at
 		FROM layoffs l
 		ORDER BY l.layoff_date DESC`)
 	if err != nil {
@@ -1031,7 +1032,7 @@ func (s *LayoffService) GetAllLayoffs() ([]*models.Layoff, error) {
 	var layoffs []*models.Layoff
 	for rows.Next() {
 		layoff := &models.Layoff{}
-		err := rows.Scan(&layoff.ID, &layoff.CompanyID, &layoff.EmployeesAffected, &layoff.LayoffDate, &layoff.SourceURL, &layoff.Notes, &layoff.Status, &layoff.CreatedAt)
+		err := rows.Scan(&layoff.ID, &layoff.CompanyID, &layoff.EmployeesAffected, &layoff.LayoffDate, &layoff.SourceType, &layoff.Notes, &layoff.Status, &layoff.CreatedAt)
 		if err != nil {
 			continue
 		}

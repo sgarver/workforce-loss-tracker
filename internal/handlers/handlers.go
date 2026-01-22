@@ -390,12 +390,6 @@ func (h *Handler) Tracker(c echo.Context) error {
 		normalizedCompany := *layoff.Company // Copy the struct
 		normalizedCompany.Name = displayName
 
-		// Convert sql.NullString to simple string for template
-		sourceURL := ""
-		if layoff.SourceURL.Valid {
-			sourceURL = layoff.SourceURL.String
-		}
-
 		layoffMap := map[string]interface{}{
 			"ID":                layoff.ID,
 			"CompanyID":         layoff.CompanyID,
@@ -403,7 +397,7 @@ func (h *Handler) Tracker(c echo.Context) error {
 			"EmployeesAffected": layoff.EmployeesAffected,
 			"LayoffDate":        layoff.LayoffDate,
 			"DisplayDate":       layoff.DisplayDate,
-			"SourceURL":         sourceURL,
+			"SourceType":        layoff.SourceType,
 			"Notes":             layoff.Notes,
 			"Status":            layoff.Status,
 			"CreatedAt":         layoff.CreatedAt,
@@ -517,7 +511,6 @@ func (h *Handler) CreateLayoff(c echo.Context) error {
 	companyName := c.FormValue("company_name")
 	employeesStr := c.FormValue("employees_affected")
 	layoffDateStr := c.FormValue("layoff_date")
-	sourceURL := c.FormValue("source_url")
 	notes := c.FormValue("notes")
 	industryStr := c.FormValue("industry")
 
@@ -549,7 +542,7 @@ func (h *Handler) CreateLayoff(c echo.Context) error {
 		CompanyID:         companyID,
 		EmployeesAffected: employees,
 		LayoffDate:        layoffDate,
-		SourceURL:         sql.NullString{String: sourceURL, Valid: sourceURL != ""},
+		SourceType:        models.SourceTypeUserSubmitted,
 		Notes:             sql.NullString{String: notes, Valid: notes != ""},
 		Status:            sql.NullString{String: "pending", Valid: true},
 		CreatedAt:         time.Now(),
@@ -722,16 +715,12 @@ func (h *Handler) ExportCSV(c echo.Context) error {
 	csvLines = append(csvLines, "Company,Industry,Employees Affected,Layoff Date,Source URL,Notes")
 
 	for _, item := range layoffs.Data.([]*models.Layoff) {
-		sourceURL := ""
-		if item.SourceURL.Valid {
-			sourceURL = item.SourceURL.String
-		}
 		line := fmt.Sprintf(`"%s","%s",%d,"%s","%s","%s"`,
 			item.Company.Name,
 			item.Company.Industry,
 			item.EmployeesAffected,
 			item.LayoffDate.Format("2006-01-02"),
-			sourceURL,
+			item.SourceType,
 			strings.ReplaceAll(item.Notes.String, `"`, `""`))
 		csvLines = append(csvLines, line)
 	}

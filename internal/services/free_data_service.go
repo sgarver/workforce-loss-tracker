@@ -187,9 +187,9 @@ func (s *FreeDataService) ImportFromWARNDatabase() error {
 			}
 
 			_, err = s.db.Exec(`
-				INSERT OR IGNORE INTO layoffs (company_id, employees_affected, layoff_date, source_url, status, created_at)
+				INSERT OR IGNORE INTO layoffs (company_id, employees_affected, layoff_date, source_type, status, created_at)
 				VALUES (?, ?, ?, ?, ?, ?)`,
-				companyID, workers, dbDate, "https://layoffdata.com", layoffStatus, time.Now())
+				companyID, workers, dbDate, "warn", layoffStatus, time.Now())
 			if err != nil {
 				log.Printf("Error inserting layoff for %s: %v", company, err)
 				totalSkipped++
