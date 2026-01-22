@@ -37,8 +37,15 @@ func main() {
 		log.Println("No .env file found, using system environment variables")
 	}
 
+	// Log current working directory
+	if wd, err := os.Getwd(); err == nil {
+		log.Printf("Current working directory: %s", wd)
+	} else {
+		log.Printf("Error getting working directory: %v", err)
+	}
+
 	// Initialize database
-	db, err := database.NewDB("layoff_tracker.db")
+	db, err := database.NewDB("/tmp/layoff_tracker.db")
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}

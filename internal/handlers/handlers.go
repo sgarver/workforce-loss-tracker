@@ -126,6 +126,10 @@ func (h *Handler) getCurrentUser(c echo.Context) *models.User {
 		log.Printf("Error getting user %d: %v", userIDI, err)
 		return nil
 	}
+	if user == nil {
+		log.Printf("User %d not found", userIDI)
+		return nil
+	}
 	log.Printf("Scanned user: ID=%d, IsAdmin=%v", user.ID, user.IsAdmin)
 	log.Printf("Current user: %s (admin: %v)", user.Email, user.IsAdmin)
 	return user

@@ -553,7 +553,7 @@ func (s *LayoffService) GetStatsWithMonths(months int) (*models.Stats, error) {
 	stats.TotalEmployeesFormatted = formatNumber(stats.TotalEmployeesAffected)
 	stats.RecentLayoffsFormatted = formatNumber(stats.RecentLayoffs)
 
-	// Industry breakdown
+	// Industry breakdown - skip if industry column doesn't exist or has no data
 	industryQuery := `
 		SELECT
 			c.industry,
@@ -568,20 +568,25 @@ func (s *LayoffService) GetStatsWithMonths(months int) (*models.Stats, error) {
 
 	rows, err = s.db.Query(industryQuery)
 	if err != nil {
-		return nil, fmt.Errorf("error getting industry breakdown: %w", err)
-	}
-	defer rows.Close()
+		// If industry column doesn't exist or query fails, skip industry breakdown
+		log.Printf("Skipping industry breakdown: %v", err)
+		stats.IndustryBreakdown = []models.IndustryBreakdown{}
+	} else {
+		defer rows.Close()
 
-	var industryBreakdown []models.IndustryBreakdown
-	for rows.Next() {
-		var breakdown models.IndustryBreakdown
-		err := rows.Scan(&breakdown.Industry, &breakdown.Count, &breakdown.Employees)
-		if err != nil {
-			return nil, fmt.Errorf("error scanning industry breakdown: %w", err)
+		var industryBreakdown []models.IndustryBreakdown
+		for rows.Next() {
+			var breakdown models.IndustryBreakdown
+			err := rows.Scan(&breakdown.Industry, &breakdown.Count, &breakdown.Employees)
+			if err != nil {
+				log.Printf("Error scanning industry breakdown: %v", err)
+				break
+			}
+			industryBreakdown = append(industryBreakdown, breakdown)
 		}
-		industryBreakdown = append(industryBreakdown, breakdown)
+
+		stats.IndustryBreakdown = industryBreakdown
 	}
-	stats.IndustryBreakdown = industryBreakdown
 
 	// Company breakdown (top 10 by employee impact)
 	mappingService := NewCompanyMappingService(s.db)
