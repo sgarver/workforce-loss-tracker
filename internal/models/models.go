@@ -50,6 +50,14 @@ type Company struct {
 	UpdatedAt          time.Time     `json:"updated_at"`
 }
 
+// Source type constants for data differentiation
+const (
+	SourceTypeWARN           = "warn"
+	SourceTypeUserSubmitted  = "user_submitted"
+	SourceTypeAdminImported  = "admin_imported"
+	SourceTypeAPIIntegration = "api_integration"
+)
+
 type Layoff struct {
 	ID                int            `json:"id"`
 	CompanyID         int            `json:"company_id"`
@@ -57,7 +65,7 @@ type Layoff struct {
 	EmployeesAffected int            `json:"employees_affected"`
 	LayoffDate        time.Time      `json:"layoff_date"`
 	DisplayDate       string         `json:"display_date"`
-	SourceURL         sql.NullString `json:"source_url"`
+	SourceType        string         `json:"source_type"`
 	Notes             sql.NullString `json:"notes"`
 	Status            sql.NullString `json:"status"`
 	CreatedAt         time.Time      `json:"created_at"`
