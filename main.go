@@ -131,7 +131,7 @@ func main() {
 	))
 
 	// Initialize free data service
-	freeDataService := services.NewFreeDataService(db)
+	freeDataService := services.NewFreeDataService(db, layoffService)
 
 	// Initialize handlers
 	handler := handlers.NewHandler(layoffService, userService, freeDataService, templates)
@@ -173,7 +173,7 @@ func main() {
 	e.POST("/admin/clear-seed-data", handler.ClearSeedData)
 
 	// Setup free data import routes
-	services.SetupFreeDataRoutes(e, db)
+	services.SetupFreeDataRoutes(e, db, layoffService)
 
 	// DEBUG: Auto-run import on startup for testing
 	go func() {
@@ -184,6 +184,16 @@ func main() {
 			log.Printf("Auto-import failed: %v", err)
 		} else {
 			log.Println("Auto-import completed successfully")
+
+			// Update company sizes for companies without employee counts
+			log.Println("Updating company sizes...")
+			err = layoffService.UpdateCompanySizes()
+			if err != nil {
+				log.Printf("Company size update failed: %v", err)
+				log.Println("Continuing without company sizes - tracker page will show '-' for company sizes")
+			} else {
+				log.Println("Company size update completed")
+			}
 
 			// Classify companies that don't have industry data
 			log.Println("Running industry classification...")
