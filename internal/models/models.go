@@ -32,21 +32,22 @@ type ImportHistory struct {
 }
 
 type Company struct {
-	ID                 int        `json:"id"`
-	Name               string     `json:"name"`
-	EmployeeCount      int        `json:"employee_count,omitempty"`
-	IndustryID         int        `json:"industry_id,omitempty"`
-	Industry           string     `json:"industry,omitempty"`
-	IndustryMethod     string     `json:"industry_method,omitempty"`
-	IndustryConfidence int        `json:"industry_confidence,omitempty"`
-	IndustryVerified   bool       `json:"industry_verified,omitempty"`
-	IndustryVerifiedBy string     `json:"industry_verified_by,omitempty"`
-	IndustrySource     string     `json:"industry_source,omitempty"`
-	IndustryVerifiedAt *time.Time `json:"industry_verified_at,omitempty"`
-	Website            string     `json:"website,omitempty"`
-	LogoURL            string     `json:"logo_url,omitempty"`
-	CreatedAt          time.Time  `json:"created_at"`
-	UpdatedAt          time.Time  `json:"updated_at"`
+	ID                 int           `json:"id"`
+	Name               string        `json:"name"`
+	CanonicalName      string        `json:"canonical_name,omitempty"`
+	EmployeeCount      sql.NullInt64 `json:"employee_count,omitempty"`
+	IndustryID         int           `json:"industry_id,omitempty"`
+	Industry           string        `json:"industry,omitempty"`
+	IndustryMethod     string        `json:"industry_method,omitempty"`
+	IndustryConfidence int           `json:"industry_confidence,omitempty"`
+	IndustryVerified   bool          `json:"industry_verified,omitempty"`
+	IndustryVerifiedBy string        `json:"industry_verified_by,omitempty"`
+	IndustrySource     string        `json:"industry_source,omitempty"`
+	IndustryVerifiedAt *time.Time    `json:"industry_verified_at,omitempty"`
+	Website            string        `json:"website,omitempty"`
+	LogoURL            string        `json:"logo_url,omitempty"`
+	CreatedAt          time.Time     `json:"created_at"`
+	UpdatedAt          time.Time     `json:"updated_at"`
 }
 
 type Layoff struct {
@@ -55,9 +56,10 @@ type Layoff struct {
 	Company           *Company       `json:"company,omitempty"`
 	EmployeesAffected int            `json:"employees_affected"`
 	LayoffDate        time.Time      `json:"layoff_date"`
+	DisplayDate       string         `json:"display_date"`
 	SourceURL         sql.NullString `json:"source_url"`
-	Notes             string         `json:"notes"`
-	Status            string         `json:"status"`
+	Notes             sql.NullString `json:"notes"`
+	Status            sql.NullString `json:"status"`
 	CreatedAt         time.Time      `json:"created_at"`
 }
 
@@ -73,16 +75,17 @@ type SponsoredListing struct {
 }
 
 type FilterParams struct {
-	IndustryID    int    `json:"industry_id"`
-	MinEmployees  int    `json:"min_employees"`
-	MaxEmployees  int    `json:"max_employees"`
-	StartDate     string `json:"start_date"`
-	EndDate       string `json:"end_date"`
-	Search        string `json:"search"`
-	SortBy        string `json:"sort_by"`
-	SortDirection string `json:"sort_direction"`
-	Page          int    `json:"page"`
-	Limit         int    `json:"limit"`
+	Industry            string `json:"industry"`
+	MinEmployees        int    `json:"min_employees"`
+	MaxEmployees        int    `json:"max_employees"`
+	StartDate           string `json:"start_date"`
+	EndDate             string `json:"end_date"`
+	IncludeUnknownDates bool   `json:"include_unknown_dates"`
+	Search              string `json:"search"`
+	SortBy              string `json:"sort_by"`
+	SortDirection       string `json:"sort_direction"`
+	Page                int    `json:"page"`
+	Limit               int    `json:"limit"`
 }
 
 type Comment struct {
@@ -121,12 +124,14 @@ type Stats struct {
 	RecentLayoffs          int `json:"recent_layoffs"`
 	RecentEmployees        int `json:"recent_employees"`
 	// Formatted versions for display
-	TotalLayoffsFormatted   string              `json:"-"`
-	TotalCompaniesFormatted string              `json:"-"`
-	TotalEmployeesFormatted string              `json:"-"`
-	RecentLayoffsFormatted  string              `json:"-"`
-	MonthlyTrend            []MonthlyTrend      `json:"monthly_trend"`
-	IndustryBreakdown       []IndustryBreakdown `json:"industry_breakdown"`
+	TotalLayoffsFormatted   string                 `json:"-"`
+	TotalCompaniesFormatted string                 `json:"-"`
+	TotalEmployeesFormatted string                 `json:"-"`
+	RecentLayoffsFormatted  string                 `json:"-"`
+	MonthlyTrend            []MonthlyTrend         `json:"monthly_trend"`
+	IndustryBreakdown       []IndustryBreakdown    `json:"industry_breakdown"`
+	CompanyBreakdown        []*CompanyBreakdown    `json:"company_breakdown"`
+	LayoffScaleBreakdown    []LayoffScaleBreakdown `json:"layoff_scale_breakdown"`
 }
 
 type MonthlyTrend struct {
@@ -138,6 +143,19 @@ type MonthlyTrend struct {
 
 type IndustryBreakdown struct {
 	Industry  string `json:"industry"`
+	Count     int    `json:"count"`
+	Employees int    `json:"employees"`
+}
+
+type CompanyBreakdown struct {
+	Company   string `json:"company"`
+	Employees int    `json:"employees"`
+	Layoffs   int    `json:"layoffs"`
+}
+
+type LayoffScaleBreakdown struct {
+	Scale     string `json:"scale"`
+	Range     string `json:"range"`
 	Count     int    `json:"count"`
 	Employees int    `json:"employees"`
 }

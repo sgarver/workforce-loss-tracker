@@ -71,4 +71,63 @@
         </div>
         {{end}}
     </div>
+
+    <!-- Admin Utilities -->
+    <div class="mt-8 card-bg rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Admin Utilities</h2>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Data Management</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        Tools for managing system data and imports.
+                    </p>
+                    <button hx-post="/admin/clear-seed-data"
+                            hx-confirm="Are you sure you want to clear all seed data? This will permanently remove sample layoffs and cannot be undone."
+                            hx-target="#clear-seed-result"
+                            class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded text-sm font-medium">
+                        🗑️ Clear Seed Data
+                    </button>
+                    <div id="clear-seed-result" class="mt-2"></div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        Removes sample/fake data from the system. Use after importing real data.
+                    </p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Industry Classification</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        Classify companies with industries using rule-based detection.
+                    </p>
+                    <div class="space-y-2">
+                        <button hx-post="/admin/classify-companies"
+                                hx-target="#classify-result"
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium">
+                            🏷️ Classify New Companies
+                        </button>
+                        <button hx-post="/admin/reclassify-companies"
+                                hx-target="#reclassify-result"
+                                class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded text-sm font-medium">
+                            🔄 Reclassify All Companies
+                        </button>
+                        <button hx-post="/admin/update-company-sizes"
+                                hx-target="#sizes-result"
+                                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-medium">
+                            📊 Update Company Sizes
+                        </button>
+                    </div>
+                    <div id="classify-result" class="mt-2"></div>
+                    <div id="reclassify-result" class="mt-2"></div>
+                    <div id="sizes-result" class="mt-2"></div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        <strong>Classify New:</strong> Adds industries to companies without any industry data.<br>
+                        <strong>Reclassify All:</strong> Re-parses existing industry data to fix poorly parsed NAICS codes.<br>
+                        <strong>Update Sizes:</strong> Estimates employee counts for companies based on known company sizes.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+

@@ -20,8 +20,9 @@ Other site changes
   - [x] implement POST /layoffs for creating new layoffs
  - [x] fix tracker page industry column not displaying values
  - [x] implement industry determination system (WARN data + name patterns, 10-20% coverage; Clearbit API ready for 80-90% coverage)
- - [x] complete SDLC: integration tests, rollback automation, streamlined notifications
- - [x] broaden app scope to all industries (not just tech)
+  - [x] complete SDLC: integration tests, rollback automation, streamlined notifications
+  - [x] broaden app scope to all industries (not just tech)
+  - [x] fix critical duplicate data issue: added unique constraint to prevent 2.3M duplicate layoffs
  - [hold] add banner image
  - [x] add contact page with footer link
  - [x] reorganize footer: consolidate legal links into Legal section
@@ -55,4 +56,4 @@ Getting Production Ready
  - [ ] improve industry detection to 80-90% (requires domain for Clearbit API signup)
  - [x] rebrand to "Workforce Loss Tracker" to match workforceloss.com domain
 
-Last updated: 2026-01-19
+Last updated: 2026-01-20 11:47 PST (completed monitoring system: import history tracking, data quality monitoring, performance optimization, and verified user feedback system)

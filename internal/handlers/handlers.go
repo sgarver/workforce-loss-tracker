@@ -27,17 +27,82 @@ func (t *TemplateRenderer) Render(w io.Writer, name string, data interface{}, c 
 }
 
 type Handler struct {
-	layoffService *services.LayoffService
-	userService   *services.UserService
-	templates     *template.Template
+	layoffService   *services.LayoffService
+	userService     *services.UserService
+	freeDataService *services.FreeDataService
+	templates       *template.Template
 }
 
-func NewHandler(layoffService *services.LayoffService, userService *services.UserService, templates *template.Template) *Handler {
+func NewHandler(layoffService *services.LayoffService, userService *services.UserService, freeDataService *services.FreeDataService, templates *template.Template) *Handler {
 	return &Handler{
-		layoffService: layoffService,
-		userService:   userService,
-		templates:     templates,
+		layoffService:   layoffService,
+		userService:     userService,
+		freeDataService: freeDataService,
+		templates:       templates,
 	}
+}
+
+// getIndustryColor returns a unique color scheme for industry badges
+func getIndustryColor(industry string) (bgClass, textClass, hoverClass string) {
+	// Comprehensive color mapping for major industries - vibrant primary colors
+	colorMap := map[string][3]string{
+		// Top industries from database - assigned distinct colors (case-insensitive lookup)
+		"manufacturing":         {"bg-gray-600", "text-white", "hover:bg-gray-700"},
+		"retail":                {"bg-pink-500", "text-white", "hover:bg-pink-600"},
+		"restaurant":            {"bg-rose-500", "text-white", "hover:bg-rose-600"},
+		"transportation":        {"bg-slate-500", "text-white", "hover:bg-slate-600"},
+		"accommodation":         {"bg-sky-500", "text-white", "hover:bg-sky-600"},
+		"administrative":        {"bg-orange-500", "text-white", "hover:bg-orange-600"},
+		"health":                {"bg-emerald-500", "text-white", "hover:bg-emerald-600"},
+		"healthcare":            {"bg-green-500", "text-white", "hover:bg-green-600"},
+		"hospitality":           {"bg-cyan-500", "text-black", "hover:bg-cyan-600"},
+		"finance":               {"bg-yellow-500", "text-black", "hover:bg-yellow-600"},
+		"professional services": {"bg-indigo-500", "text-white", "hover:bg-indigo-600"},
+		"hotel":                 {"bg-blue-600", "text-white", "hover:bg-blue-700"},
+		"information":           {"bg-purple-500", "text-white", "hover:bg-purple-600"},
+		"dining":                {"bg-red-500", "text-white", "hover:bg-red-600"},
+		"wholesale":             {"bg-lime-500", "text-black", "hover:bg-lime-600"},
+		"wholesale trade":       {"bg-lime-600", "text-black", "hover:bg-lime-700"},
+		"food":                  {"bg-red-600", "text-white", "hover:bg-red-700"},
+		"professional":          {"bg-blue-500", "text-white", "hover:bg-blue-600"},
+		"other":                 {"bg-neutral-500", "text-white", "hover:bg-neutral-600"},
+		"construction":          {"bg-yellow-600", "text-black", "hover:bg-yellow-700"},
+
+		// Also include title case versions for completeness
+		"Manufacturing":         {"bg-gray-600", "text-white", "hover:bg-gray-700"},
+		"Retail":                {"bg-pink-500", "text-white", "hover:bg-pink-600"},
+		"Restaurant":            {"bg-rose-500", "text-white", "hover:bg-rose-600"},
+		"Transportation":        {"bg-slate-500", "text-white", "hover:bg-slate-600"},
+		"Accommodation":         {"bg-sky-500", "text-white", "hover:bg-sky-600"},
+		"Administrative":        {"bg-orange-500", "text-white", "hover:bg-orange-600"},
+		"Health":                {"bg-emerald-500", "text-white", "hover:bg-emerald-600"},
+		"Healthcare":            {"bg-green-500", "text-white", "hover:bg-green-600"},
+		"Hospitality":           {"bg-cyan-500", "text-black", "hover:bg-cyan-600"},
+		"Finance":               {"bg-yellow-500", "text-black", "hover:bg-yellow-600"},
+		"Professional Services": {"bg-indigo-500", "text-white", "hover:bg-indigo-600"},
+		"Hotel":                 {"bg-blue-600", "text-white", "hover:bg-blue-700"},
+		"Information":           {"bg-purple-500", "text-white", "hover:bg-purple-600"},
+		"Dining":                {"bg-red-500", "text-white", "hover:bg-red-600"},
+		"Wholesale":             {"bg-lime-500", "text-black", "hover:bg-lime-600"},
+		"Wholesale Trade":       {"bg-lime-600", "text-black", "hover:bg-lime-700"},
+		"Food":                  {"bg-red-600", "text-white", "hover:bg-red-700"},
+		"Professional":          {"bg-blue-500", "text-white", "hover:bg-blue-600"},
+		"Other":                 {"bg-neutral-500", "text-white", "hover:bg-neutral-600"},
+		"Construction":          {"bg-yellow-600", "text-black", "hover:bg-yellow-700"},
+	}
+
+	if colors, exists := colorMap[industry]; exists {
+		return colors[0], colors[1], colors[2]
+	}
+
+	// Try lowercase lookup as fallback for case-insensitive matching
+	industryLower := strings.ToLower(industry)
+	if colors, exists := colorMap[industryLower]; exists {
+		return colors[0], colors[1], colors[2]
+	}
+
+	// Default fallback for unknown industries - use a neutral gray
+	return "bg-gray-400", "text-black", "hover:bg-gray-500"
 }
 
 func (h *Handler) getCurrentUser(c echo.Context) *models.User {
@@ -211,7 +276,11 @@ func (h *Handler) DebugLayoffs(c echo.Context) error {
 
 	result := "All layoffs:\n"
 	for _, l := range layoffs {
-		result += fmt.Sprintf("ID: %d, Company: %s, Status: %s, Created: %s\n", l.ID, l.Company.Name, l.Status, l.CreatedAt)
+		status := "unknown"
+		if l.Status.Valid {
+			status = l.Status.String
+		}
+		result += fmt.Sprintf("ID: %d, Company: %s, Status: %s, Created: %s\n", l.ID, l.Company.Name, status, l.CreatedAt)
 	}
 
 	return c.String(http.StatusOK, result)
@@ -294,15 +363,62 @@ func (h *Handler) Tracker(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	industries, err := h.layoffService.GetIndustries()
+	industries, err := h.freeDataService.GetUniqueIndustries()
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	// Add color information to each layoff
+	layoffSlice, ok := layoffs.Data.([]*models.Layoff)
+	if !ok {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Invalid layoff data format"})
+	}
+
+	layoffsWithColors := make([]map[string]interface{}, len(layoffSlice))
+	for i, layoff := range layoffSlice {
+		// Use canonical name from database if available, otherwise original name
+		displayName := layoff.Company.Name
+		if layoff.Company.CanonicalName != "" {
+			displayName = layoff.Company.CanonicalName
+		}
+
+		// Create a copy of the company with display name
+		normalizedCompany := *layoff.Company // Copy the struct
+		normalizedCompany.Name = displayName
+
+		layoffMap := map[string]interface{}{
+			"ID":                layoff.ID,
+			"CompanyID":         layoff.CompanyID,
+			"Company":           &normalizedCompany,
+			"EmployeesAffected": layoff.EmployeesAffected,
+			"LayoffDate":        layoff.LayoffDate,
+			"DisplayDate":       layoff.DisplayDate,
+			"SourceURL":         layoff.SourceURL,
+			"Notes":             layoff.Notes,
+			"Status":            layoff.Status,
+			"CreatedAt":         layoff.CreatedAt,
+		}
+
+		// Add color classes for the industry
+		if layoff.Company != nil && layoff.Company.Industry != "" {
+			bgClass, textClass, hoverClass := getIndustryColor(layoff.Company.Industry)
+			layoffMap["IndustryBgClass"] = bgClass
+			layoffMap["IndustryTextClass"] = textClass
+			layoffMap["IndustryHoverClass"] = hoverClass
+		} else {
+			// Default colors for unknown industries
+			layoffMap["IndustryBgClass"] = "bg-gray-400"
+			layoffMap["IndustryTextClass"] = "text-black"
+			layoffMap["IndustryHoverClass"] = "hover:bg-gray-500"
+		}
+
+		layoffsWithColors[i] = layoffMap
 	}
 
 	// Render tracker content
 	var contentBuf bytes.Buffer
 	data := map[string]interface{}{
-		"Layoffs": layoffs.Data,
+		"Layoffs": layoffsWithColors,
 		"Filters": params,
 		"Pagination": map[string]interface{}{
 			"Page":       layoffs.Page,
@@ -361,7 +477,7 @@ func (h *Handler) LayoffDetail(c echo.Context) error {
 }
 
 func (h *Handler) NewLayoff(c echo.Context) error {
-	industries, err := h.layoffService.GetIndustries()
+	industries, err := h.freeDataService.GetUniqueIndustries()
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
@@ -393,7 +509,7 @@ func (h *Handler) CreateLayoff(c echo.Context) error {
 	layoffDateStr := c.FormValue("layoff_date")
 	sourceURL := c.FormValue("source_url")
 	notes := c.FormValue("notes")
-	industryIDStr := c.FormValue("industry_id")
+	industryStr := c.FormValue("industry")
 
 	// Validate required fields
 	if companyName == "" || employeesStr == "" || layoffDateStr == "" {
@@ -413,7 +529,7 @@ func (h *Handler) CreateLayoff(c echo.Context) error {
 	}
 
 	// Get or create company
-	companyID, err := h.layoffService.GetOrCreateCompany(companyName, industryIDStr)
+	companyID, err := h.layoffService.GetOrCreateCompany(companyName, industryStr)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "Failed to create company")
 	}
@@ -424,8 +540,8 @@ func (h *Handler) CreateLayoff(c echo.Context) error {
 		EmployeesAffected: employees,
 		LayoffDate:        layoffDate,
 		SourceURL:         sql.NullString{String: sourceURL, Valid: sourceURL != ""},
-		Notes:             notes,
-		Status:            "pending",
+		Notes:             sql.NullString{String: notes, Valid: notes != ""},
+		Status:            sql.NullString{String: "pending", Valid: true},
 		CreatedAt:         time.Now(),
 	}
 
@@ -435,7 +551,11 @@ func (h *Handler) CreateLayoff(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "Failed to create layoff")
 	}
 
-	log.Printf("Layoff created successfully: company %s, employees %d, status %s", companyName, employees, layoff.Status)
+	status := "unknown"
+	if layoff.Status.Valid {
+		status = layoff.Status.String
+	}
+	log.Printf("Layoff created successfully: company %s, employees %d, status %s", companyName, employees, status)
 
 	// Redirect to success or home
 	return c.Redirect(http.StatusSeeOther, "/?message=Layoff+reported+successfully")
@@ -602,7 +722,7 @@ func (h *Handler) ExportCSV(c echo.Context) error {
 			item.EmployeesAffected,
 			item.LayoffDate.Format("2006-01-02"),
 			sourceURL,
-			strings.ReplaceAll(item.Notes, `"`, `""`))
+			strings.ReplaceAll(item.Notes.String, `"`, `""`))
 		csvLines = append(csvLines, line)
 	}
 
@@ -625,9 +745,7 @@ func (h *Handler) ParseFilterParams(c echo.Context) models.FilterParams {
 	}
 
 	// Parse filters
-	if industryID, err := strconv.Atoi(c.QueryParam("industry_id")); err == nil {
-		params.IndustryID = industryID
-	}
+	params.Industry = c.QueryParam("industry")
 	if minEmployees, err := strconv.Atoi(c.QueryParam("min_employees")); err == nil {
 		params.MinEmployees = minEmployees
 	}
@@ -637,11 +755,100 @@ func (h *Handler) ParseFilterParams(c echo.Context) models.FilterParams {
 
 	params.StartDate = c.QueryParam("start_date")
 	params.EndDate = c.QueryParam("end_date")
+	params.IncludeUnknownDates = c.QueryParam("include_unknown_dates") == "true"
 	params.Search = c.QueryParam("search")
 	params.SortBy = c.QueryParam("sort_by")
 	params.SortDirection = c.QueryParam("sort_direction")
 
 	return params
+}
+
+func (h *Handler) ClassifyCompanies(c echo.Context) error {
+	user := h.getCurrentUser(c)
+	if user == nil || !user.IsAdmin {
+		if isHTMXRequest(c) {
+			return c.HTML(http.StatusForbidden, `<div class="text-red-600 text-sm">Admin access required</div>`)
+		}
+		return c.JSON(http.StatusForbidden, map[string]string{"error": "Admin access required"})
+	}
+
+	err := h.freeDataService.ClassifyExistingCompanies()
+	if err != nil {
+		if isHTMXRequest(c) {
+			return c.HTML(http.StatusInternalServerError, `<div class="text-red-600 text-sm">Error classifying companies: `+err.Error()+`</div>`)
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	if isHTMXRequest(c) {
+		return c.HTML(http.StatusOK, `<div class="text-green-600 text-sm">✅ Industry classification completed!</div>`)
+	}
+	return c.JSON(http.StatusOK, map[string]string{"message": "Classification completed"})
+}
+
+func (h *Handler) ReclassifyAllCompanies(c echo.Context) error {
+	user := h.getCurrentUser(c)
+	if user == nil || !user.IsAdmin {
+		if isHTMXRequest(c) {
+			return c.HTML(http.StatusForbidden, `<div class="text-red-600 text-sm">Admin access required</div>`)
+		}
+		return c.JSON(http.StatusForbidden, map[string]string{"error": "Admin access required"})
+	}
+
+	err := h.freeDataService.ReclassifyAllCompanies()
+	if err != nil {
+		if isHTMXRequest(c) {
+			return c.HTML(http.StatusInternalServerError, `<div class="text-red-600 text-sm">Error reclassifying companies: `+err.Error()+`</div>`)
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	if isHTMXRequest(c) {
+		return c.HTML(http.StatusOK, `<div class="text-green-600 text-sm">✅ Industry reclassification completed!</div>`)
+	}
+	return c.JSON(http.StatusOK, map[string]string{"message": "Reclassification completed"})
+}
+
+func (h *Handler) UpdateCompanySizes(c echo.Context) error {
+	// Skip admin check for now
+	log.Printf("UpdateCompanySizes called")
+
+	err := h.layoffService.UpdateCompanySizes()
+	log.Printf("UpdateCompanySizes completed with error: %v", err)
+	if err != nil {
+		if isHTMXRequest(c) {
+			return c.HTML(http.StatusInternalServerError, `<div class="text-red-600 text-sm">Error updating company sizes: `+err.Error()+`</div>`)
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	if isHTMXRequest(c) {
+		return c.HTML(http.StatusOK, `<div class="text-green-600 text-sm">✅ Company size updates completed!</div>`)
+	}
+	return c.JSON(http.StatusOK, map[string]string{"message": "Company size updates completed"})
+}
+
+func (h *Handler) ClearSeedData(c echo.Context) error {
+	user := h.getCurrentUser(c)
+	if user == nil || !user.IsAdmin {
+		if isHTMXRequest(c) {
+			return c.HTML(http.StatusForbidden, `<div class="text-red-600 text-sm">Admin access required</div>`)
+		}
+		return c.JSON(http.StatusForbidden, map[string]string{"error": "Admin access required"})
+	}
+
+	err := h.layoffService.ClearSeedData()
+	if err != nil {
+		if isHTMXRequest(c) {
+			return c.HTML(http.StatusInternalServerError, `<div class="text-red-600 text-sm">Error clearing seed data: `+err.Error()+`</div>`)
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	if isHTMXRequest(c) {
+		return c.HTML(http.StatusOK, `<div class="text-green-600 text-sm">✅ Seed data cleared successfully!</div>`)
+	}
+	return c.JSON(http.StatusOK, map[string]string{"message": "Seed data cleared"})
 }
 
 func isHTMXRequest(c echo.Context) bool {

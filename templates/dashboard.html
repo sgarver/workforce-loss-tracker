@@ -30,7 +30,7 @@
             <p class="text-gray-600 dark:text-gray-300">Visual analysis of workforce reduction patterns and industry distribution</p>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <!-- Trend Chart -->
             <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
                 <div class="flex items-center justify-between mb-4">
@@ -53,6 +53,22 @@
                     <canvas id="industryChart"></canvas>
                 </div>
             </div>
+
+            <!-- Company Breakdown Chart -->
+            <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Major Company Layoffs</h3>
+                <div class="h-80">
+                    <canvas id="companyChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Layoff Scale Breakdown Chart -->
+            <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Layoff Scale Distribution</h3>
+                <div class="h-80">
+                    <canvas id="scaleChart"></canvas>
+                </div>
+            </div>
         </div>
     </div>
 </section>
@@ -61,9 +77,11 @@
 // Global chart variables
 let monthlyChart = null;
 let industryChart = null;
+let companyChart = null;
+let scaleChart = null;
 
 // Load chart data from API
-let chartData = { monthlyTrend: [], industryBreakdown: [] };
+let chartData = { monthlyTrend: [], industryBreakdown: [], companyBreakdown: [], layoffScaleBreakdown: [] };
 
 // Helper function to get week number
 function getWeekNumber(date) {
@@ -82,6 +100,8 @@ async function loadChartData(months = currentMonths) {
             const stats = await response.json();
             chartData.monthlyTrend = stats.monthly_trend || [];
             chartData.industryBreakdown = stats.industry_breakdown || [];
+            chartData.companyBreakdown = stats.company_breakdown || [];
+            chartData.layoffScaleBreakdown = stats.layoff_scale_breakdown || [];
             renderCharts();
         } else {
             console.error('Failed to load chart data:', response.status, response.statusText);
@@ -104,6 +124,14 @@ function destroyCharts() {
     if (industryChart) {
         industryChart.destroy();
         industryChart = null;
+    }
+    if (companyChart) {
+        companyChart.destroy();
+        companyChart = null;
+    }
+    if (scaleChart) {
+        scaleChart.destroy();
+        scaleChart = null;
     }
 }
 
@@ -281,11 +309,218 @@ function renderCharts() {
                         }
                     }
                 }
+            },
+            onClick: function(event, elements) {
+                if (elements.length > 0) {
+                    const index = elements[0].index;
+                    const industry = industryData[index].industry;
+                    // Navigate to tracker page filtered by this industry
+                    window.location.href = `/tracker?industry=${encodeURIComponent(industry)}`;
+                }
             }
         }
         });
     } catch (error) {
         console.error('Error creating industry chart:', error);
+    }
+
+    // Create company chart (horizontal bar chart)
+    const companyChartEl = document.getElementById('companyChart');
+    if (!companyChartEl) {
+        console.error('Company chart canvas not found');
+        return;
+    }
+
+    const companyCtx = companyChartEl.getContext('2d');
+    if (!companyCtx) {
+        console.error('Could not get 2D context for company chart');
+        return;
+    }
+
+    const companyData = chartData.companyBreakdown;
+
+    if (!companyData || companyData.length === 0) {
+        console.log('No company data available for chart');
+        return;
+    }
+
+    try {
+        companyChart = new Chart(companyCtx, {
+            type: 'bar',
+            data: {
+                labels: companyData.map(item => item.company),
+                datasets: [{
+                    label: 'Employees Affected',
+                    data: companyData.map(item => item.employees),
+                    backgroundColor: '#3b82f6',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y', // Horizontal bar chart
+                plugins: {
+                    legend: {
+                        display: false // Hide legend for cleaner look
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const company = context.label;
+                                const employees = context.parsed.x;
+                                const item = companyData.find(c => c.company === company);
+                                const layoffs = item ? item.layoffs : 0;
+                                return `${company}: ${employees.toLocaleString()} employees (${layoffs} layoffs)`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#d1d5db' : '#374151',
+                            callback: function(value) {
+                                return value.toLocaleString();
+                            }
+                        },
+                        grid: {
+                            color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#374151' : '#e5e7eb'
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#d1d5db' : '#374151'
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                onClick: function(event, elements) {
+                    if (elements.length > 0) {
+                        const index = elements[0].index;
+                        const company = companyData[index].company;
+                        // Navigate to tracker page filtered by this company
+                        window.location.href = `/tracker?search=${encodeURIComponent(company)}`;
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error creating company chart:', error);
+    }
+
+    // Layoff Scale Breakdown Chart
+    const scaleChartEl = document.getElementById('scaleChart');
+    if (!scaleChartEl) {
+        console.error('Scale chart canvas not found');
+        return;
+    }
+
+    const scaleCtx = scaleChartEl.getContext('2d');
+    if (!scaleCtx) {
+        console.error('Could not get 2D context for scale chart');
+        return;
+    }
+
+    const scaleData = chartData.layoffScaleBreakdown;
+
+    if (!scaleData || scaleData.length === 0) {
+        console.log('No scale data available for chart');
+        return;
+    }
+
+    try {
+        scaleChart = new Chart(scaleCtx, {
+            type: 'bar',
+            data: {
+                labels: scaleData.map(item => item.scale),
+                datasets: [{
+                    label: 'Employees Affected',
+                    data: scaleData.map(item => item.employees),
+                    backgroundColor: '#10b981',
+                    yAxisID: 'y'
+                }, {
+                    label: 'Number of Layoffs',
+                    data: scaleData.map(item => item.count),
+                    type: 'line',
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    yAxisID: 'y1',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#d1d5db' : '#374151'
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const item = scaleData[context.dataIndex];
+                                if (context.datasetIndex === 0) {
+                                    return `${item.scale}: ${context.parsed.y.toLocaleString()} employees (${item.range})`;
+                                } else {
+                                    return `Layoffs: ${context.parsed.y.toLocaleString()}`;
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Employees Affected'
+                        },
+                        ticks: {
+                            color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#d1d5db' : '#374151',
+                            callback: function(value) {
+                                return value.toLocaleString();
+                            }
+                        },
+                        grid: {
+                            color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#374151' : '#e5e7eb'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Number of Layoffs'
+                        },
+                        ticks: {
+                            color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#d1d5db' : '#374151'
+                        },
+                        grid: {
+                            drawOnChartArea: false,
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#d1d5db' : '#374151'
+                        },
+                        grid: {
+                            color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#374151' : '#e5e7eb'
+                        }
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error creating scale chart:', error);
     }
 }
 
@@ -362,6 +597,14 @@ function updateChartColors() {
     if (industryChart) {
         industryChart.options.plugins.legend.labels.color = textColor;
         industryChart.update();
+    }
+
+    // Update company chart
+    if (companyChart) {
+        companyChart.options.scales.x.ticks.color = textColor;
+        companyChart.options.scales.x.grid.color = gridColor;
+        companyChart.options.scales.y.ticks.color = textColor;
+        companyChart.update();
     }
 }
 
