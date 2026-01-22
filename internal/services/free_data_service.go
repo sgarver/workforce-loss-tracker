@@ -22,11 +22,12 @@ import (
 )
 
 type FreeDataService struct {
-	db *database.DB
+	db            *database.DB
+	layoffService *LayoffService
 }
 
-func NewFreeDataService(db *database.DB) *FreeDataService {
-	return &FreeDataService{db: db}
+func NewFreeDataService(db *database.DB, layoffService *LayoffService) *FreeDataService {
+	return &FreeDataService{db: db, layoffService: layoffService}
 }
 
 // Import data from GitHub CSV
@@ -207,6 +208,18 @@ func (s *FreeDataService) ImportFromWARNDatabase() error {
 
 	log.Printf("WARN Database import completed: %d total imported, %d processed, %d skipped",
 		totalImported, totalProcessed, totalSkipped)
+
+	// Update company sizes for newly imported companies
+	if s.layoffService != nil {
+		log.Println("Updating company sizes for imported companies...")
+		if updateErr := s.layoffService.UpdateCompanySizes(); updateErr != nil {
+			log.Printf("Company size update failed: %v", updateErr)
+		} else {
+			log.Println("Company size update completed")
+		}
+	} else {
+		log.Println("Warning: LayoffService not available, skipping company size update")
+	}
 
 	// Log import to history for monitoring
 	contentHash := fmt.Sprintf("%d-%d-%d-%d", totalImported, totalProcessed, totalSkipped, startTime.Unix())
@@ -1687,8 +1700,8 @@ func (s *FreeDataService) saveImportHistory(url string, recordCount int, content
 	}
 }
 
-func SetupFreeDataRoutes(e *echo.Echo, db *database.DB) {
-	freeDataService := NewFreeDataService(db)
+func SetupFreeDataRoutes(e *echo.Echo, db *database.DB, layoffService *LayoffService) {
+	freeDataService := NewFreeDataService(db, layoffService)
 
 	// Import WARN Database data
 	e.POST("/import/warn", func(c echo.Context) error {
