@@ -18,7 +18,15 @@
         <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Where does the data come from?</h2>
         <p class="text-gray-600 dark:text-gray-300">
             Our primary data source is the official WARN Database maintained by layoffdata.com, which aggregates WARN Act notices from all US states.
-            We also monitor other public sources and allow community reporting of layoffs. All data is verified against official filings when possible.
+            We perform automated nightly imports from two comprehensive Google Sheets datasets:
+        </p>
+        <ul class="list-disc list-inside text-gray-600 dark:text-gray-300 mt-2 mb-4 space-y-1">
+            <li>Historical WARN data (covering layoffs from previous years)</li>
+            <li>Current year WARN data (latest filings and announcements)</li>
+        </ul>
+        <p class="text-gray-600 dark:text-gray-300">
+            We also monitor other public sources and allow community reporting of layoffs. All imported data undergoes validation to ensure accuracy,
+            and community submissions are reviewed before publication.
         </p>
     </div>
 

@@ -18,7 +18,7 @@
             </div>
             <div>
                 <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Industry</h3>
-                <p class="text-lg text-gray-900 dark:text-white">{{if .Layoff.Company.Industry}}{{.Layoff.Company.Industry.Name}}{{else}}Unknown{{end}}</p>
+                <p class="text-lg text-gray-900 dark:text-white">{{if .Layoff.Company.Industry}}{{.Layoff.Company.Industry}}{{else}}Unknown{{end}}</p>
             </div>
             <div>
                 <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Employees Affected</h3>
@@ -35,10 +35,10 @@
             <a href="{{.Layoff.SourceURL.String}}" target="_blank" class="text-primary-600 hover:text-primary-700 break-all">{{.Layoff.SourceURL.String}}</a>
         </div>
         {{end}}
-        {{if .Layoff.Notes}}
+        {{if .Layoff.Notes.Valid}}
         <div class="mt-6">
             <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Additional Notes</h3>
-            <p class="text-gray-700 dark:text-gray-300 whitespace-pre-line">{{.Layoff.Notes}}</p>
+            <p class="text-gray-700 dark:text-gray-300 whitespace-pre-line">{{.Layoff.Notes.String}}</p>
         </div>
         {{end}}
     </div>
@@ -182,66 +182,24 @@ document.addEventListener('DOMContentLoaded', loadComments);
                     <div class="ml-4">
                         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{.Layoff.Company.Name}}</h1>
                         <div class="mt-1 flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-                            <span>{{if .Layoff.Company.Industry}}{{.Layoff.Company.Industry.Name}}{{else}}Unknown Industry{{end}}</span>
-                            {{if .Layoff.Company.EmployeeCount}}
-                            <span>•</span>
-                            <span>{{.Layoff.Company.EmployeeCount}} employees</span>
-                            {{end}}
-                            {{if .Layoff.Company.Website}}
-                            <span>•</span>
-                            <a href="{{.Layoff.Company.Website}}" target="_blank" class="text-primary-600 dark:text-primary-400 hover:underline">
-                                Website →
-                            </a>
-                            {{end}}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Layoff Details -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Main Content -->
-        <div class="lg:col-span-2 space-y-8">
-            <!-- Layoff Information -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">📉 Layoff Details</h2>
-                </div>
-                <div class="p-6">
-                    <dl class="grid grid-cols-1 gap-y-4 sm:grid-cols-2 sm:gap-x-6">
-                        <div>
-                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Employees Affected</dt>
-                            <dd class="mt-1 text-lg font-bold text-red-600 dark:text-red-400">{{.Layoff.EmployeesAffected}}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Layoff Date</dt>
-                            <dd class="mt-1 text-lg font-semibold text-gray-900 dark:text-white">{{.Layoff.LayoffDate.Format "January 2, 2006"}}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Reported On</dt>
-                            <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{.Layoff.CreatedAt.Format "January 2, 2006"}}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Source</dt>
-                            <dd class="mt-1">
-                                {{if .Layoff.SourceURL.Valid}}
-                                <a href="{{.Layoff.SourceURL.String}}" target="_blank" class="text-primary-600 dark:text-primary-400 hover:underline text-sm">
-                                    View Source Report →
-                                </a>
-                                {{else}}
+                            <span>{{if .Layoff.Company.Industry}}{{.Layoff.Company.Industry}}{{else}}Unknown Industry{{end}}</span>
+                            {{if .Layoff.Company.EmployeeCount.Valid}}
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm text-gray-500 dark:text-gray-400">Company Size:</span>
+                                <span>{{.Layoff.Company.EmployeeCount.Int64}} employees</span>
+                            </div>
+                            {{else}}
                                 <span class="text-gray-400 dark:text-gray-500 text-sm">No source available</span>
                                 {{end}}
                             </dd>
                         </div>
                     </dl>
 
-                    {{if .Layoff.Notes}}
+                    {{if .Layoff.Notes.Valid}}
                     <div class="mt-6">
                         <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Additional Notes</dt>
                         <dd class="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 p-3 rounded-md">
-                            {{.Layoff.Notes}}
+                            {{.Layoff.Notes.String}}
                         </dd>
                     </div>
                     {{end}}

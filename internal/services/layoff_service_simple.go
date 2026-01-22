@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"layoff-tracker/internal/database"
 	"layoff-tracker/internal/models"
-	"strconv"
+	"log"
 	"strings"
 	"time"
 )
@@ -41,9 +41,9 @@ func (s *LayoffService) GetLayoffs(params models.FilterParams) (*models.Paginate
 	}
 
 	// Add industry filter
-	if params.IndustryID > 0 {
-		whereClauses = append(whereClauses, "c.industry_id = ?")
-		args = append(args, params.IndustryID)
+	if params.Industry != "" {
+		whereClauses = append(whereClauses, "c.industry = ?")
+		args = append(args, params.Industry)
 	}
 
 	// Add employee count filters
@@ -64,6 +64,11 @@ func (s *LayoffService) GetLayoffs(params models.FilterParams) (*models.Paginate
 	if params.EndDate != "" {
 		whereClauses = append(whereClauses, "l.layoff_date <= ?")
 		args = append(args, params.EndDate)
+	}
+
+	// Add unknown dates filter
+	if !params.IncludeUnknownDates {
+		whereClauses = append(whereClauses, "l.layoff_date IS NOT NULL")
 	}
 
 	// Default to "1=1" if no filters
@@ -97,7 +102,9 @@ func (s *LayoffService) GetLayoffs(params models.FilterParams) (*models.Paginate
 		case "company":
 			orderBy = "c.name " + direction
 		case "industry":
-			orderBy = "i.name " + direction
+			orderBy = "c.industry " + direction
+		case "company_size":
+			orderBy = "c.employee_count " + direction
 		case "employees":
 			orderBy = "l.employees_affected " + direction
 		case "date":
@@ -112,7 +119,6 @@ func (s *LayoffService) GetLayoffs(params models.FilterParams) (*models.Paginate
 		SELECT COUNT(*)
 		FROM layoffs l
 		JOIN companies c ON l.company_id = c.id
-		LEFT JOIN industries i ON c.industry_id = i.id
 		WHERE %s`, whereSQL)
 
 	var total int
@@ -123,13 +129,12 @@ func (s *LayoffService) GetLayoffs(params models.FilterParams) (*models.Paginate
 
 	// Get paginated results
 	query := fmt.Sprintf(`
-		SELECT
-			l.id, l.company_id, l.employees_affected, l.layoff_date, l.source_url, l.notes, l.status, l.created_at,
+		SELECT l.id, l.company_id, l.employees_affected, l.layoff_date,
+			l.source_url, l.notes, l.status, l.created_at,
 			c.id, c.name, c.employee_count, c.website, c.logo_url, c.created_at, c.updated_at,
-			i.id, i.name, i.slug
+			c.industry
 		FROM layoffs l
 		JOIN companies c ON l.company_id = c.id
-		LEFT JOIN industries i ON c.industry_id = i.id
 		WHERE %s
 		ORDER BY %s
 		LIMIT %d OFFSET %d`, whereSQL, orderBy, limit, offset)
@@ -146,6 +151,12 @@ func (s *LayoffService) GetLayoffs(params models.FilterParams) (*models.Paginate
 			Company: &models.Company{},
 		}
 
+		defer rows.Close()
+
+		if !rows.Next() {
+			return nil, fmt.Errorf("layoff not found")
+		}
+
 		var employeesAffected sql.NullInt64
 		var layoffDate sql.NullTime
 		var sourceURL sql.NullString
@@ -160,28 +171,28 @@ func (s *LayoffService) GetLayoffs(params models.FilterParams) (*models.Paginate
 		var logoURL sql.NullString
 		var companyCreatedAt sql.NullTime
 		var companyUpdatedAt sql.NullTime
-		var industryID sql.NullInt64
-		var industryName sql.NullString
-		var industrySlug sql.NullString
+		var industry sql.NullString
 
-		err := rows.Scan(
+		err = rows.Scan(
 			&layoff.ID, &layoffCompanyID, &employeesAffected, &layoffDate,
-			&sourceURL, &notes, &status, &createdAt,
+			&layoff.SourceURL, &layoff.Notes, &layoff.Status, &createdAt,
 			&companyID, &companyName, &employeeCount,
 			&website, &logoURL, &companyCreatedAt, &companyUpdatedAt,
-			&industryID, &industryName, &industrySlug,
+			&industry,
 		)
 
 		layoff.CompanyID = int(layoffCompanyID.Int64)
 		layoff.EmployeesAffected = int(employeesAffected.Int64)
 		if layoffDate.Valid {
 			layoff.LayoffDate = layoffDate.Time
+			layoff.DisplayDate = layoffDate.Time.Format("2006-01-02")
 		} else {
-			layoff.LayoffDate = time.Now()
+			layoff.LayoffDate = time.Time{}
+			layoff.DisplayDate = "unknown"
 		}
 		layoff.SourceURL = sourceURL
-		layoff.Notes = notes.String
-		layoff.Status = status.String
+		layoff.Notes = notes
+		layoff.Status = status
 		if createdAt.Valid {
 			layoff.CreatedAt = createdAt.Time
 		} else {
@@ -193,6 +204,23 @@ func (s *LayoffService) GetLayoffs(params models.FilterParams) (*models.Paginate
 		} else {
 			layoff.Company.Name = "Unknown Company"
 		}
+		// Normalize company name on-demand for display
+		if companyName.Valid {
+			mappingService := NewCompanyMappingService(s.db)
+			if normalizedName, err := mappingService.NormalizeCompany(companyName.String); err == nil {
+				layoff.Company.Name = normalizedName
+			}
+		}
+		layoff.Company.EmployeeCount = employeeCount
+		if website.Valid {
+			layoff.Company.Website = website.String
+		}
+		if logoURL.Valid {
+			layoff.Company.LogoURL = logoURL.String
+		}
+		if industry.Valid {
+			layoff.Company.Industry = industry.String
+		}
 		if companyCreatedAt.Valid {
 			layoff.Company.CreatedAt = companyCreatedAt.Time
 		} else {
@@ -203,16 +231,11 @@ func (s *LayoffService) GetLayoffs(params models.FilterParams) (*models.Paginate
 		} else {
 			layoff.Company.UpdatedAt = time.Now()
 		}
-		if industryID.Valid {
-			layoff.Company.IndustryID = int(industryID.Int64)
-		}
-		if industryName.Valid {
-			layoff.Company.Industry = industryName.String
+		if industry.Valid {
+			layoff.Company.Industry = industry.String
 		}
 
-		if employeeCount.Valid && employeeCount.Int64 > 0 {
-			layoff.Company.EmployeeCount = int(employeeCount.Int64)
-		}
+		layoff.Company.EmployeeCount = employeeCount
 		if website.Valid {
 			layoff.Company.Website = website.String
 		}
@@ -237,16 +260,15 @@ func (s *LayoffService) GetLayoffs(params models.FilterParams) (*models.Paginate
 	}, nil
 }
 
-func (s *LayoffService) GetLayoff(id int) (*models.Layoff, error) {
+func (s *LayoffService) GetLayoff(layoffID int) (*models.Layoff, error) {
 	query := `
 		SELECT
 			l.id, l.company_id, l.employees_affected, l.layoff_date, l.source_url, l.notes, l.status, l.created_at,
 			c.id, c.name, c.employee_count, c.website, c.logo_url, c.created_at, c.updated_at,
-			i.id, i.name, i.slug
+			c.industry
 		FROM layoffs l
 		JOIN companies c ON l.company_id = c.id
-		LEFT JOIN industries i ON c.industry_id = i.id
-		WHERE l.id = $1`
+		WHERE l.id = ?`
 
 	layoff := &models.Layoff{
 		Company: &models.Company{},
@@ -254,12 +276,19 @@ func (s *LayoffService) GetLayoff(id int) (*models.Layoff, error) {
 
 	var logoURL sql.NullString
 	var website sql.NullString
-	var industryID sql.NullInt64
-	var industryName sql.NullString
-	var industrySlug sql.NullString
+	var industry sql.NullString
 	var employeeCount sql.NullInt64
+	var layoffDate sql.NullTime
+	var sourceURL sql.NullString
+	var notes sql.NullString
+	var status sql.NullString
+	var createdAt sql.NullTime
+	var companyID sql.NullInt64
+	var companyName sql.NullString
+	var companyCreatedAt sql.NullTime
+	var companyUpdatedAt sql.NullTime
 
-	rows, err := s.db.Query(query, id)
+	rows, err := s.db.Query(query, layoffID)
 	if err != nil {
 		return nil, fmt.Errorf("error querying layoff: %w", err)
 	}
@@ -270,12 +299,28 @@ func (s *LayoffService) GetLayoff(id int) (*models.Layoff, error) {
 	}
 
 	err = rows.Scan(
-		&layoff.ID, &layoff.CompanyID, &layoff.EmployeesAffected, &layoff.LayoffDate,
-		&layoff.SourceURL, &layoff.Notes, &layoff.Status, &layoff.CreatedAt,
-		&layoff.Company.ID, &layoff.Company.Name, &employeeCount,
-		&website, &logoURL, &layoff.Company.CreatedAt, &layoff.Company.UpdatedAt,
-		&industryID, &industryName, &industrySlug,
+		&layoff.ID, &layoff.CompanyID, &layoff.EmployeesAffected, &layoffDate,
+		&sourceURL, &notes, &status, &createdAt,
+		&companyID, &companyName, &employeeCount,
+		&website, &logoURL, &companyCreatedAt, &companyUpdatedAt,
+		&industry,
 	)
+
+	// Handle nullable fields
+	layoff.LayoffDate = layoffDate.Time
+	if layoffDate.Valid {
+		layoff.DisplayDate = layoffDate.Time.Format("2006-01-02")
+	} else {
+		layoff.DisplayDate = "unknown"
+	}
+	layoff.SourceURL = sourceURL
+	layoff.Notes = notes
+	layoff.Status = status
+	if createdAt.Valid {
+		layoff.CreatedAt = createdAt.Time
+	} else {
+		layoff.CreatedAt = time.Now()
+	}
 
 	if website.Valid {
 		layoff.Company.Website = website.String
@@ -283,14 +328,34 @@ func (s *LayoffService) GetLayoff(id int) (*models.Layoff, error) {
 	if logoURL.Valid {
 		layoff.Company.LogoURL = logoURL.String
 	}
-	if employeeCount.Valid && employeeCount.Int64 > 0 {
-		layoff.Company.EmployeeCount = int(employeeCount.Int64)
+	layoff.Company.EmployeeCount = employeeCount
+	if industry.Valid {
+		layoff.Company.Industry = industry.String
 	}
-	if industryID.Valid {
-		layoff.Company.IndustryID = int(industryID.Int64)
+	if companyID.Valid {
+		layoff.Company.ID = int(companyID.Int64)
 	}
-	if industryName.Valid {
-		layoff.Company.Industry = industryName.String
+	if companyName.Valid {
+		layoff.Company.Name = companyName.String
+	} else {
+		layoff.Company.Name = "Unknown Company"
+	}
+	// Normalize company name on-demand for display
+	if companyName.Valid {
+		mappingService := NewCompanyMappingService(s.db)
+		if normalizedName, err := mappingService.NormalizeCompany(companyName.String); err == nil {
+			layoff.Company.Name = normalizedName
+		}
+	}
+	if companyCreatedAt.Valid {
+		layoff.Company.CreatedAt = companyCreatedAt.Time
+	} else {
+		layoff.Company.CreatedAt = time.Now()
+	}
+	if companyUpdatedAt.Valid {
+		layoff.Company.UpdatedAt = companyUpdatedAt.Time
+	} else {
+		layoff.Company.UpdatedAt = time.Now()
 	}
 
 	if err != nil {
@@ -305,8 +370,8 @@ func (s *LayoffService) GetLayoff(id int) (*models.Layoff, error) {
 
 func (s *LayoffService) CreateLayoff(layoff *models.Layoff) error {
 	// Use status from layoff if set, otherwise set based on date
-	status := layoff.Status
-	if status == "" {
+	status := layoff.Status.String
+	if !layoff.Status.Valid || status == "" {
 		status = "completed"
 		if layoff.LayoffDate.After(time.Now()) {
 			status = "planned"
@@ -491,14 +556,15 @@ func (s *LayoffService) GetStatsWithMonths(months int) (*models.Stats, error) {
 	// Industry breakdown
 	industryQuery := `
 		SELECT
-			i.name,
+			c.industry,
 			COUNT(*) as count,
 			COALESCE(SUM(l.employees_affected), 0) as employees
 		FROM layoffs l
 		JOIN companies c ON l.company_id = c.id
-		JOIN industries i ON c.industry_id = i.id
-		GROUP BY i.name
-		ORDER BY employees DESC`
+		WHERE c.industry IS NOT NULL AND c.industry != '' AND c.industry != 'Unknown'
+		GROUP BY c.industry
+		ORDER BY employees DESC
+		LIMIT 12`
 
 	rows, err = s.db.Query(industryQuery)
 	if err != nil {
@@ -517,7 +583,162 @@ func (s *LayoffService) GetStatsWithMonths(months int) (*models.Stats, error) {
 	}
 	stats.IndustryBreakdown = industryBreakdown
 
+	// Company breakdown (top 10 by employee impact)
+	mappingService := NewCompanyMappingService(s.db)
+	companyQuery := `
+		SELECT c.name, SUM(l.employees_affected) as total_employees, COUNT(l.id) as layoffs
+		FROM layoffs l
+		JOIN companies c ON l.company_id = c.id
+		GROUP BY c.id, c.name
+		HAVING total_employees >= 1000
+		ORDER BY total_employees DESC` // Get companies with significant layoffs for normalization
+
+	rows, err = s.db.Query(companyQuery)
+	if err != nil {
+		return nil, fmt.Errorf("error getting company breakdown: %w", err)
+	}
+	defer rows.Close()
+
+	// Group companies by normalized names
+	companyMap := make(map[string]*models.CompanyBreakdown)
+	for rows.Next() {
+		var name string
+		var employees int
+		var layoffs int
+
+		err := rows.Scan(&name, &employees, &layoffs)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning company data: %w", err)
+		}
+
+		// Normalize company name on-demand
+		normalizedName, err := mappingService.NormalizeCompany(name)
+		if err != nil {
+			normalizedName = name // fallback to original name if normalization fails
+		}
+
+		// Aggregate by normalized name
+		if existing, exists := companyMap[normalizedName]; exists {
+			existing.Employees += employees
+			existing.Layoffs += layoffs
+		} else {
+			companyMap[normalizedName] = &models.CompanyBreakdown{
+				Company:   normalizedName,
+				Employees: employees,
+				Layoffs:   layoffs,
+			}
+		}
+	}
+
+	// Convert map to slice and sort by employees
+	var companyBreakdown []*models.CompanyBreakdown
+	for _, company := range companyMap {
+		companyBreakdown = append(companyBreakdown, company)
+	}
+
+	// Sort by employees descending
+	for i := 0; i < len(companyBreakdown)-1; i++ {
+		for j := i + 1; j < len(companyBreakdown); j++ {
+			if companyBreakdown[i].Employees < companyBreakdown[j].Employees {
+				companyBreakdown[i], companyBreakdown[j] = companyBreakdown[j], companyBreakdown[i]
+			}
+		}
+	}
+
+	// Take top 12
+	if len(companyBreakdown) > 12 {
+		companyBreakdown = companyBreakdown[:12]
+	}
+
+	stats.CompanyBreakdown = companyBreakdown
+
+	// Layoff scale breakdown (dynamic ranges divided into 4 equal segments)
+	scaleBreakdown, err := s.getLayoffScaleBreakdown(months)
+	if err != nil {
+		log.Printf("Error getting layoff scale breakdown: %v", err)
+		// Continue without scale breakdown rather than failing
+	} else {
+		stats.LayoffScaleBreakdown = scaleBreakdown
+	}
+
 	return stats, nil
+}
+
+func (s *LayoffService) getLayoffScaleBreakdown(months int) ([]models.LayoffScaleBreakdown, error) {
+	cutoffDate := time.Now().AddDate(0, -months, 0)
+	cutoffStr := cutoffDate.Format("2006-01-02")
+
+	// First get the min and max employees_affected for the time range
+	minMaxQuery := `
+		SELECT MIN(employees_affected), MAX(employees_affected), COUNT(*)
+		FROM layoffs
+		WHERE layoff_date >= ? AND employees_affected > 0`
+
+	var minEmployees, maxEmployees, totalLayoffs int
+	err := s.db.QueryRow(minMaxQuery, cutoffStr).Scan(&minEmployees, &maxEmployees, &totalLayoffs)
+	if err != nil {
+		return nil, fmt.Errorf("error getting min/max employees: %w", err)
+	}
+
+	if totalLayoffs == 0 {
+		return []models.LayoffScaleBreakdown{}, nil
+	}
+
+	// If all layoffs are the same size, handle edge case
+	if minEmployees == maxEmployees {
+		return []models.LayoffScaleBreakdown{
+			{
+				Scale:     "All Layoffs",
+				Range:     fmt.Sprintf("%d employees", minEmployees),
+				Count:     totalLayoffs,
+				Employees: minEmployees * totalLayoffs,
+			},
+		}, nil
+	}
+
+	// Calculate range and segment size
+	totalRange := maxEmployees - minEmployees
+	segmentSize := totalRange / 4
+
+	// Create 4 segments
+	breakdowns := make([]models.LayoffScaleBreakdown, 4)
+	scaleNames := []string{"Smallest Range", "Small Range", "Large Range", "Largest Range"}
+
+	for i := 0; i < 4; i++ {
+		var minRange, maxRange int
+		if i == 0 {
+			minRange = minEmployees
+		} else {
+			minRange = minEmployees + (segmentSize * i)
+		}
+
+		if i == 3 {
+			maxRange = maxEmployees
+		} else {
+			maxRange = minEmployees + (segmentSize * (i + 1)) - 1
+		}
+
+		// Query layoffs in this range
+		rangeQuery := `
+			SELECT COUNT(*), COALESCE(SUM(employees_affected), 0)
+			FROM layoffs
+			WHERE layoff_date >= ? AND employees_affected >= ? AND employees_affected <= ?`
+
+		var count, employees int
+		err := s.db.QueryRow(rangeQuery, cutoffStr, minRange, maxRange).Scan(&count, &employees)
+		if err != nil {
+			return nil, fmt.Errorf("error querying range %d: %w", i, err)
+		}
+
+		breakdowns[i] = models.LayoffScaleBreakdown{
+			Scale:     scaleNames[i],
+			Range:     fmt.Sprintf("%d-%d employees", minRange, maxRange),
+			Count:     count,
+			Employees: employees,
+		}
+	}
+
+	return breakdowns, nil
 }
 
 func (s *LayoffService) GetSponsoredListings() ([]*models.SponsoredListing, error) {
@@ -568,10 +789,9 @@ func (s *LayoffService) GetCurrentLayoffs() (*models.PaginatedResult, error) {
 		SELECT
 			l.id, l.company_id, l.employees_affected, l.layoff_date, l.source_url, l.notes, l.status, l.created_at,
 			c.id, c.name, c.employee_count, c.website, c.logo_url, c.created_at, c.updated_at,
-			i.id, i.name, i.slug
+			c.industry
 		FROM layoffs l
 		JOIN companies c ON l.company_id = c.id
-		LEFT JOIN industries i ON c.industry_id = i.id
 		WHERE l.layoff_date >= ?
 		ORDER BY l.layoff_date DESC
 		LIMIT 50`
@@ -590,21 +810,66 @@ func (s *LayoffService) GetCurrentLayoffs() (*models.PaginatedResult, error) {
 
 		var logoURL sql.NullString
 		var website sql.NullString
-		var industryID sql.NullInt64
-		var industryName sql.NullString
-		var industrySlug sql.NullString
+		var industry sql.NullString
 		var employeeCount sql.NullInt64
+		var layoffDate sql.NullTime
+		var sourceURL sql.NullString
+		var notes sql.NullString
+		var status sql.NullString
+		var createdAt sql.NullTime
+		var layoffCompanyID sql.NullInt64
+		var companyID sql.NullInt64
+		var companyName sql.NullString
+		var companyCreatedAt sql.NullTime
+		var companyUpdatedAt sql.NullTime
 
 		err := rows.Scan(
-			&layoff.ID, &layoff.CompanyID, &layoff.EmployeesAffected, &layoff.LayoffDate,
-			&layoff.SourceURL, &layoff.Notes, &layoff.Status, &layoff.CreatedAt,
-			&layoff.Company.ID, &layoff.Company.Name, &employeeCount,
-			&website, &logoURL, &layoff.Company.CreatedAt, &layoff.Company.UpdatedAt,
-			&industryID, &industryName, &industrySlug,
+			&layoff.ID, &layoffCompanyID, &employeeCount, &layoffDate,
+			&sourceURL, &notes, &status, &createdAt,
+			&companyID, &companyName, &layoff.Company.EmployeeCount,
+			&website, &logoURL, &companyCreatedAt, &companyUpdatedAt,
+			&industry,
 		)
 
-		if employeeCount.Valid && employeeCount.Int64 > 0 {
-			layoff.Company.EmployeeCount = int(employeeCount.Int64)
+		layoff.CompanyID = int(layoffCompanyID.Int64)
+		layoff.EmployeesAffected = int(employeeCount.Int64)
+		if layoffDate.Valid {
+			layoff.LayoffDate = layoffDate.Time
+			layoff.DisplayDate = layoffDate.Time.Format("2006-01-02")
+		} else {
+			layoff.LayoffDate = time.Time{}
+			layoff.DisplayDate = "unknown"
+		}
+		layoff.SourceURL = sourceURL
+		layoff.Notes = notes
+		layoff.Status = status
+		if createdAt.Valid {
+			layoff.CreatedAt = createdAt.Time
+		} else {
+			layoff.CreatedAt = time.Now()
+		}
+		layoff.Company.ID = int(companyID.Int64)
+		if companyName.Valid {
+			layoff.Company.Name = companyName.String
+		} else {
+			layoff.Company.Name = "Unknown Company"
+		}
+		// Normalize company name on-demand for display
+		if companyName.Valid {
+			mappingService := NewCompanyMappingService(s.db)
+			if normalizedName, err := mappingService.NormalizeCompany(companyName.String); err == nil {
+				layoff.Company.Name = normalizedName
+			}
+		}
+		if companyCreatedAt.Valid {
+			layoff.Company.CreatedAt = companyCreatedAt.Time
+		} else {
+			layoff.Company.CreatedAt = time.Now()
+		}
+		if companyUpdatedAt.Valid {
+			layoff.Company.UpdatedAt = companyUpdatedAt.Time
+		} else {
+			layoff.Company.UpdatedAt = time.Now()
 		}
 		if website.Valid {
 			layoff.Company.Website = website.String
@@ -612,11 +877,8 @@ func (s *LayoffService) GetCurrentLayoffs() (*models.PaginatedResult, error) {
 		if logoURL.Valid {
 			layoff.Company.LogoURL = logoURL.String
 		}
-		if industryID.Valid {
-			layoff.Company.IndustryID = int(industryID.Int64)
-		}
-		if industryName.Valid {
-			layoff.Company.Industry = industryName.String
+		if industry.Valid {
+			layoff.Company.Industry = industry.String
 		}
 		if err != nil {
 			return nil, fmt.Errorf("error scanning layoff row: %w", err)
@@ -647,34 +909,66 @@ func (s *LayoffService) GetLastImportTime() (string, error) {
 	return lastImportTime, nil
 }
 
-func (s *LayoffService) GetOrCreateCompany(name, industryIDStr string) (int, error) {
-	// Try to find existing company
-	var companyID int
+func (s *LayoffService) GetOrCreateCompany(name, industry string) (int, error) {
+	// First try to find existing company
 	query := `SELECT id FROM companies WHERE name = ?`
-	err := s.db.QueryRow(query, name).Scan(&companyID)
+	var id int
+	err := s.db.QueryRow(query, name).Scan(&id)
 	if err == nil {
-		// Company exists
-		return companyID, nil
+		return id, nil
 	}
 
-	// Create new company
-	var industryID interface{} = nil
-	if industryIDStr != "" {
-		if id, err := strconv.Atoi(industryIDStr); err == nil {
-			industryID = id
-		}
-	}
+	// Company doesn't exist, create it
+	// Estimate company size based on name
+	estimatedSize := EstimateCompanySize(name)
 
-	query = `INSERT INTO companies (name, industry_id) VALUES (?, ?)`
-	result, err := s.db.Exec(query, name, industryID)
+	query = `INSERT INTO companies (name, industry, employee_count) VALUES (?, ?, ?)`
+	result, err := s.db.Exec(query, name, industry, estimatedSize)
 	if err != nil {
 		return 0, fmt.Errorf("failed to create company: %w", err)
 	}
-	id, err := result.LastInsertId()
+	id64, err := result.LastInsertId()
 	if err != nil {
 		return 0, fmt.Errorf("failed to get company ID: %w", err)
 	}
-	return int(id), nil
+	return int(id64), nil
+}
+
+// UpdateCompanySizes updates existing companies that don't have employee counts
+func (s *LayoffService) UpdateCompanySizes() error {
+	rows, err := s.db.Query(`SELECT id, name FROM companies WHERE employee_count IS NULL`)
+	if err != nil {
+		return fmt.Errorf("error querying companies without sizes: %w", err)
+	}
+	defer rows.Close()
+
+	updated := 0
+	for rows.Next() {
+		var id int
+		var name string
+		if err := rows.Scan(&id, &name); err != nil {
+			continue
+		}
+
+		estimatedSize := EstimateCompanySize(name)
+		if estimatedSize > 0 {
+			_, err := s.db.Exec(`UPDATE companies SET employee_count = ? WHERE id = ?`, estimatedSize, id)
+			if err != nil {
+				log.Printf("Error updating company %d size: %v", id, err)
+			} else {
+				updated++
+			}
+		} else {
+			// Set to NULL for unknown companies (estimatedSize = 0 means unknown)
+			_, err := s.db.Exec(`UPDATE companies SET employee_count = NULL WHERE id = ?`, id)
+			if err != nil {
+				log.Printf("Error clearing company %d size: %v", id, err)
+			}
+		}
+	}
+
+	log.Printf("Updated employee counts for %d companies", updated)
+	return nil
 }
 
 func (s *LayoffService) ApproveLayoff(id int) error {
@@ -690,7 +984,7 @@ func (s *LayoffService) RejectLayoff(id int) error {
 func (s *LayoffService) GetPendingLayoffs() ([]*models.Layoff, error) {
 	rows, err := s.db.Query(`
 		SELECT l.id, l.company_id, l.employees_affected, l.layoff_date, l.source_url, l.notes, l.status, l.created_at,
-		       c.name, c.website, c.employee_count, c.industry_id
+		       c.name, c.canonical_name, c.website, c.employee_count, c.industry_id
 		FROM layoffs l
 		JOIN companies c ON l.company_id = c.id
 		WHERE l.status = 'pending'
@@ -704,12 +998,20 @@ func (s *LayoffService) GetPendingLayoffs() ([]*models.Layoff, error) {
 	var layoffs []*models.Layoff
 	for rows.Next() {
 		layoff := &models.Layoff{Company: &models.Company{}}
+		var companyName sql.NullString
+		var canonicalName sql.NullString
 		err := rows.Scan(
 			&layoff.ID, &layoff.Company.ID, &layoff.EmployeesAffected, &layoff.LayoffDate, &layoff.SourceURL, &layoff.Notes, &layoff.Status, &layoff.CreatedAt,
-			&layoff.Company.Name, &layoff.Company.Website, &layoff.Company.EmployeeCount, &layoff.Company.IndustryID,
+			&companyName, &canonicalName, &layoff.Company.Website, &layoff.Company.EmployeeCount, &layoff.Company.IndustryID,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning layoff: %w", err)
+		}
+		if companyName.Valid {
+			layoff.Company.Name = companyName.String
+		}
+		if canonicalName.Valid && canonicalName.String != "" {
+			layoff.Company.Name = canonicalName.String // Use canonical name for display
 		}
 		layoffs = append(layoffs, layoff)
 	}
@@ -719,12 +1021,9 @@ func (s *LayoffService) GetPendingLayoffs() ([]*models.Layoff, error) {
 
 func (s *LayoffService) GetAllLayoffs() ([]*models.Layoff, error) {
 	rows, err := s.db.Query(`
-		SELECT l.id, l.company_id, l.employees_affected, l.layoff_date, l.source_url, l.notes, l.status, l.created_at,
-		       c.name, c.website, c.employee_count, c.industry_id
+		SELECT l.id, l.company_id, l.employees_affected, l.layoff_date, l.source_url, l.notes, l.status, l.created_at
 		FROM layoffs l
-		JOIN companies c ON l.company_id = c.id
-		ORDER BY l.created_at DESC
-	`)
+		ORDER BY l.layoff_date DESC`)
 	if err != nil {
 		return nil, fmt.Errorf("error querying all layoffs: %w", err)
 	}
@@ -732,15 +1031,54 @@ func (s *LayoffService) GetAllLayoffs() ([]*models.Layoff, error) {
 
 	var layoffs []*models.Layoff
 	for rows.Next() {
-		layoff := &models.Layoff{Company: &models.Company{}}
-		err := rows.Scan(
-			&layoff.ID, &layoff.Company.ID, &layoff.EmployeesAffected, &layoff.LayoffDate, &layoff.SourceURL, &layoff.Notes, &layoff.Status, &layoff.CreatedAt,
-			&layoff.Company.Name, &layoff.Company.Website, &layoff.Company.EmployeeCount, &layoff.Company.IndustryID,
-		)
+		layoff := &models.Layoff{}
+		err := rows.Scan(&layoff.ID, &layoff.CompanyID, &layoff.EmployeesAffected, &layoff.LayoffDate, &layoff.SourceURL, &layoff.Notes, &layoff.Status, &layoff.CreatedAt)
 		if err != nil {
-			return nil, fmt.Errorf("error scanning layoff: %w", err)
+			continue
 		}
 		layoffs = append(layoffs, layoff)
 	}
+
 	return layoffs, nil
+}
+
+func (s *LayoffService) ClearSeedData() error {
+	// Delete seed layoffs based on their characteristic notes and source URLs
+	_, err := s.db.Exec(`
+		DELETE FROM layoffs
+		WHERE notes LIKE '%Restructuring due to market conditions%'
+		   OR notes LIKE '%Healthcare cost reductions%'
+		   OR notes LIKE '%Store closures and online shift%'
+		   OR notes LIKE '%Supply chain disruptions%'
+		   OR notes LIKE '%Banking consolidation%'
+		   OR notes LIKE '%Budget cuts in education%'
+		   OR notes LIKE '%Post-pandemic adjustments%'
+		   OR notes LIKE '%Fleet automation%'
+		   OR notes LIKE '%Housing market slowdown%'
+		   OR notes LIKE '%Energy transition%'
+		   OR notes LIKE '%Streaming competition%'
+		   OR notes LIKE '%Government budget constraints%'
+		   OR notes LIKE '%Funding reduction%'
+		   OR notes LIKE '%Agricultural market changes%'
+		   OR notes LIKE '%Commercial real estate slowdown%'
+		   OR source_url LIKE 'https://technews.com/%'
+		   OR source_url LIKE 'https://healthnews.com/%'
+		   OR source_url LIKE 'https://retailnews.com/%'
+		   OR source_url LIKE 'https://manufacturingnews.com/%'
+		   OR source_url LIKE 'https://financenews.com/%'
+		   OR source_url LIKE 'https://edunews.com/%'
+		   OR source_url LIKE 'https://hospitalitynews.com/%'
+		   OR source_url LIKE 'https://transportnews.com/%'
+		   OR source_url LIKE 'https://constructionnews.com/%'
+		   OR source_url LIKE 'https://energynews.com/%'
+		   OR source_url LIKE 'https://entertainmentnews.com/%'
+		   OR source_url LIKE 'https://govnews.com/%'
+		   OR source_url LIKE 'https://nonprofitnews.com/%'
+		   OR source_url LIKE 'https://agnews.com/%'
+		   OR source_url LIKE 'https://realestatenews.com/%'`)
+	if err != nil {
+		return fmt.Errorf("error clearing seed data: %w", err)
+	}
+
+	return nil
 }

@@ -123,8 +123,11 @@ func main() {
 		"templates/admin.html",
 	))
 
+	// Initialize free data service
+	freeDataService := services.NewFreeDataService(db)
+
 	// Initialize handlers
-	handler := handlers.NewHandler(layoffService, userService, templates)
+	handler := handlers.NewHandler(layoffService, userService, freeDataService, templates)
 
 	// Initialize Echo
 	e := echo.New()
@@ -159,9 +162,25 @@ func main() {
 	e.GET("/terms", handler.Terms)
 	e.GET("/contact", handler.Contact)
 	e.GET("/export/csv", handler.ExportCSV)
+	e.POST("/admin/classify-companies", handler.ClassifyCompanies)
+	e.POST("/admin/reclassify-companies", handler.ReclassifyAllCompanies)
+	e.POST("/admin/update-company-sizes", handler.UpdateCompanySizes)
+	e.POST("/admin/clear-seed-data", handler.ClearSeedData)
 
 	// Setup free data import routes
 	services.SetupFreeDataRoutes(e, db)
+
+	// DEBUG: Auto-run import on startup for testing
+	go func() {
+		time.Sleep(2 * time.Second) // Wait for server to start
+		log.Println("Auto-running WARN import for testing...")
+		err := freeDataService.ImportFromWARNDatabase()
+		if err != nil {
+			log.Printf("Auto-import failed: %v", err)
+		} else {
+			log.Println("Auto-import completed successfully")
+		}
+	}()
 
 	// Initialize notification service (configure as needed)
 	// notificationService := services.NewNotificationService(
