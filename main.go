@@ -184,6 +184,15 @@ func main() {
 			log.Printf("Auto-import failed: %v", err)
 		} else {
 			log.Println("Auto-import completed successfully")
+
+			// Classify companies that don't have industry data
+			log.Println("Running industry classification...")
+			err = freeDataService.ClassifyExistingCompanies()
+			if err != nil {
+				log.Printf("Industry classification failed: %v", err)
+			} else {
+				log.Println("Industry classification completed")
+			}
 		}
 	}()
 
