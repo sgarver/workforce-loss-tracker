@@ -190,16 +190,13 @@
                             </span>
                             {{end}}
                         </td>
-                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                             {{if eq .DisplayDate "unknown"}}
-                                 <span class="text-gray-400">Unknown</span>
-                             {{else}}
-                                 {{timeAgo .LayoffDate}}
-                             {{end}}
-                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-
-                        </td>
+                          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                              {{if eq .DisplayDate "unknown"}}
+                                  <span class="text-gray-400">Unknown</span>
+                              {{else}}
+                                  {{timeAgo .LayoffDate}}
+                              {{end}}
+                          </td>
                     </tr>
                     {{else}}
                       <tr>
