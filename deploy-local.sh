@@ -172,9 +172,24 @@ fi
 echo "🚀 Deploying to production server..."
 echo "   Target: $SCP_TARGET"
 
+# Upload binary
 if ! scp layoff-tracker "$SCP_TARGET:/tmp/"; then
     echo "❌ Failed to upload binary to server"
     exit 1
+fi
+
+# Upload templates
+if [ -d "templates" ]; then
+    if ! scp -r templates "$SCP_TARGET:/tmp/"; then
+        echo "⚠️  Warning: Failed to upload templates"
+    fi
+fi
+
+# Upload static files
+if [ -d "static" ]; then
+    if ! scp -r static "$SCP_TARGET:/tmp/"; then
+        echo "⚠️  Warning: Failed to upload static files"
+    fi
 fi
 
 echo "🔄 Executing deployment on server..."
@@ -193,6 +208,16 @@ echo "💾 Backup created: $BACKUP_FILE"
 # Deploy new binary
 cp /tmp/layoff-tracker /opt/layoff-tracker/layoff-tracker
 echo "📦 New binary deployed"
+
+# Deploy templates and static files
+if [ -d "/tmp/templates" ]; then
+    cp -r /tmp/templates/* /opt/layoff-tracker/templates/
+    echo "📄 Templates deployed"
+fi
+if [ -d "/tmp/static" ]; then
+    cp -r /tmp/static/* /opt/layoff-tracker/static/
+    echo "🖼️  Static files deployed"
+fi
 
 # Start service
 echo "▶️  Starting service..."
