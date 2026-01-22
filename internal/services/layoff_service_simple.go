@@ -707,7 +707,7 @@ func (s *LayoffService) getLayoffScaleBreakdown(months int) ([]models.LayoffScal
 
 	// Create 4 segments
 	breakdowns := make([]models.LayoffScaleBreakdown, 4)
-	scaleNames := []string{"Smallest Range", "Small Range", "Large Range", "Largest Range"}
+	scaleNames := []string{"Micro Layoffs", "Small Layoffs", "Major Layoffs", "Mass Layoffs"}
 
 	for i := 0; i < 4; i++ {
 		var minRange, maxRange int

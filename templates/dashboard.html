@@ -64,7 +64,7 @@
 
             <!-- Layoff Scale Breakdown Chart -->
             <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Layoff Scale Distribution</h3>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Layoff Impact by Scale</h3>
                 <div class="h-80">
                     <canvas id="scaleChart"></canvas>
                 </div>
@@ -444,14 +444,32 @@ function renderCharts() {
                 datasets: [{
                     label: 'Employees Affected',
                     data: scaleData.map(item => item.employees),
-                    backgroundColor: '#10b981',
+                    backgroundColor: [
+                        'rgba(99, 102, 241, 0.8)',   // Micro - indigo
+                        'rgba(16, 185, 129, 0.8)',   // Small - emerald
+                        'rgba(245, 158, 11, 0.8)',   // Major - amber
+                        'rgba(239, 68, 68, 0.8)'     // Mass - red
+                    ],
+                    borderColor: [
+                        '#6366f1',  // Micro
+                        '#10b981',  // Small
+                        '#f59e0b',  // Major
+                        '#ef4444'   // Mass
+                    ],
+                    borderWidth: 2,
                     yAxisID: 'y'
                 }, {
                     label: 'Number of Layoffs',
                     data: scaleData.map(item => item.count),
                     type: 'line',
-                    borderColor: '#f59e0b',
-                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    borderColor: '#6b7280',
+                    backgroundColor: 'rgba(107, 114, 128, 0.1)',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#6b7280',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
                     yAxisID: 'y1',
                     tension: 0.4
                 }]
@@ -467,14 +485,25 @@ function renderCharts() {
                         }
                     },
                     tooltip: {
+                        mode: 'index',
+                        intersect: false,
                         callbacks: {
+                            title: function(context) {
+                                return context[0].label;
+                            },
                             label: function(context) {
                                 const item = scaleData[context.dataIndex];
+                                const value = context.parsed.y.toLocaleString();
                                 if (context.datasetIndex === 0) {
-                                    return `${item.scale}: ${context.parsed.y.toLocaleString()} employees (${item.range})`;
+                                    const percentage = ((item.employees / scaleData.reduce((sum, d) => sum + d.employees, 0)) * 100).toFixed(1);
+                                    return `👥 ${value} employees affected (${percentage}% of total)`;
                                 } else {
-                                    return `Layoffs: ${context.parsed.y.toLocaleString()}`;
+                                    return `📊 ${value} individual layoffs`;
                                 }
+                            },
+                            footer: function(context) {
+                                const item = scaleData[context[0].dataIndex];
+                                return `Range: ${item.range}`;
                             }
                         }
                     }
