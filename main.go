@@ -143,10 +143,8 @@ func main() {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Use(session.Middleware(sessions.NewCookieStore([]byte("your-secret-key")))) // Change for production
-	e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
-		Root:   "static",
-		Browse: false,
-	}))
+	// Static files
+	e.Static("/static", "static")
 
 	// Template renderer
 	renderer := &handlers.TemplateRenderer{
