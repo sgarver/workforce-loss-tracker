@@ -190,6 +190,7 @@ func main() {
 			err = freeDataService.ClassifyExistingCompanies()
 			if err != nil {
 				log.Printf("Industry classification failed: %v", err)
+				log.Println("Continuing without industry classification - dashboard will work with limited industry data")
 			} else {
 				log.Println("Industry classification completed")
 			}
