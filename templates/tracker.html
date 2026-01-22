@@ -198,8 +198,8 @@
                              {{end}}
                          </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            {{if .SourceURL.Valid}}
-                            <a href="{{.SourceURL.String}}" target="_blank" class="text-primary-600 dark:text-primary-400 hover:underline">
+                            {{if .SourceURL}}
+                            <a href="{{.SourceURL}}" target="_blank" class="text-primary-600 dark:text-primary-400 hover:underline">
                                 View Source →
                             </a>
                             {{else}}
