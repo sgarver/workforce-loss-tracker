@@ -30,7 +30,7 @@
             <p class="text-gray-600 dark:text-gray-300">Visual analysis of workforce reduction patterns and industry distribution</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
             <!-- Trend Chart -->
             <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
                 <div class="flex items-center justify-between mb-4">
@@ -98,10 +98,12 @@ async function loadChartData(months = currentMonths) {
         const response = await fetch(`/api/stats?months=${months}`);
         if (response.ok) {
             const stats = await response.json();
+            console.log('Loaded stats:', stats);
             chartData.monthlyTrend = stats.monthly_trend || [];
             chartData.industryBreakdown = stats.industry_breakdown || [];
             chartData.companyBreakdown = stats.company_breakdown || [];
             chartData.layoffScaleBreakdown = stats.layoff_scale_breakdown || [];
+            console.log('Chart data set:', chartData);
             renderCharts();
         } else {
             console.error('Failed to load chart data:', response.status, response.statusText);
@@ -136,6 +138,7 @@ function destroyCharts() {
 }
 
 function renderCharts() {
+    console.log('renderCharts called with data:', chartData);
     // Destroy existing charts to prevent canvas reuse errors
     destroyCharts();
 
@@ -143,7 +146,7 @@ function renderCharts() {
     const monthlyTrendCanvas = document.getElementById('monthlyTrendChart');
     if (!monthlyTrendCanvas) {
         console.error('Monthly trend chart canvas not found');
-        return;
+        // Continue anyway
     }
 
     const monthlyCtx = monthlyTrendCanvas.getContext('2d');
@@ -324,11 +327,12 @@ function renderCharts() {
         console.error('Error creating industry chart:', error);
     }
 
+    console.log('Creating company chart...');
     // Create company chart (horizontal bar chart)
     const companyChartEl = document.getElementById('companyChart');
     if (!companyChartEl) {
         console.error('Company chart canvas not found');
-        return;
+        // Continue anyway
     }
 
     const companyCtx = companyChartEl.getContext('2d');
@@ -338,6 +342,7 @@ function renderCharts() {
     }
 
     const companyData = chartData.companyBreakdown;
+    console.log('Company data:', companyData);
 
     if (!companyData || companyData.length === 0) {
         console.log('No company data available for chart');

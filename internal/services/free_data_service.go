@@ -112,7 +112,7 @@ func (s *FreeDataService) ImportFromWARNDatabase() error {
 			totalProcessed++
 
 			// Parse record with robust error handling
-			company, workers, displayDate, industry, err := s.parseWARNRecord(record)
+			company, workers, displayDate, _, err := s.parseWARNRecord(record)
 			if err != nil {
 				// Log first few validation failures to understand patterns
 				if totalSkipped < 10 {
@@ -135,8 +135,8 @@ func (s *FreeDataService) ImportFromWARNDatabase() error {
 				// Company already exists, use existing ID
 			} else {
 				// Company doesn't exist, insert new one with original name only
-				_, err = s.db.Exec("INSERT INTO companies (name, industry) VALUES (?, ?)",
-					company, industry)
+				_, err = s.db.Exec("INSERT INTO companies (name) VALUES (?)",
+					company)
 				if err != nil {
 					log.Printf("Error inserting company %s: %v", company, err)
 					totalSkipped++
