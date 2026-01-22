@@ -138,6 +138,11 @@ func (s *FreeDataService) ImportFromWARNDatabase() error {
 				_, err = s.db.Exec("INSERT INTO companies (name, industry) VALUES (?, ?)",
 					company, industry)
 				if err != nil {
+					// If industry column doesn't exist, try without it
+					log.Printf("Insert with industry failed, trying without: %v", err)
+					_, err = s.db.Exec("INSERT INTO companies (name) VALUES (?)", company)
+				}
+				if err != nil {
 					log.Printf("Error inserting company %s: %v", company, err)
 					totalSkipped++
 					continue

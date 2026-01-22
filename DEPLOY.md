@@ -6,6 +6,77 @@ This application uses a **hybrid deployment approach**: automated CI/CD on GitHu
 
 **⚠️ Critical Note:** Always follow the complete deployment checklist. Recent deployments revealed missing assets (templates) that weren't caught by incomplete verification.
 
+## Development Workflow
+
+Follow this process to ensure smooth deployments and catch issues before they reach production:
+
+### Process Overview
+```
+1. Develop → 2. Test Locally → 3. Merge to Main → 4. Deploy → 5. Verify
+   ↓            ↓                     ↓               ↓            ↓
+ staging    Local server         CI/CD checks   Production     Monitoring
+ branch     (http://localhost)   passes         server         & alerts
+```
+
+### Step-by-Step Workflow
+
+#### **1. Development (staging branch)**
+- Create feature branch from `staging`
+- Make changes and commit regularly
+- Test changes in local development environment
+- Push to `staging` branch when ready for integration
+
+#### **2. Local Verification**
+- **Required**: Test all changes locally before merging
+- Run `./layoff-tracker` locally
+- Verify: Dashboard loads, charts work, API responds
+- Check: No console errors, proper data display
+- Test: All user interactions work correctly
+
+#### **3. Merge to Main**
+- **Only after local verification passes**
+- Create pull request: `staging` → `main`
+- Wait for CI/CD checks to pass
+- Merge only when all tests pass and review is complete
+
+#### **4. Production Deployment**
+- Run `./deploy-local.sh` from main branch
+- Monitor deployment logs for issues
+- Verify health checks pass
+
+#### **5. Post-Deployment Verification**
+- Check production site loads correctly
+- Verify all features work as expected
+- Monitor error logs for 24 hours
+- Be ready to rollback if issues appear
+
+### Local Testing Requirements
+
+#### **Must Verify Before Merging**
+- [ ] Dashboard loads without errors
+- [ ] All 4 charts display data correctly
+- [ ] API endpoints return expected data
+- [ ] Search and filtering work
+- [ ] Mobile responsive design
+- [ ] No console JavaScript errors
+- [ ] Page load time acceptable (< 2 seconds)
+
+#### **Local Development Setup**
+```bash
+# Start local server
+go run main.go
+
+# Or build and run
+go build -o layoff-tracker .
+./layoff-tracker
+```
+
+#### **Common Local Testing Issues**
+- **Database not updated**: Run import process locally
+- **Assets not loading**: Check static file paths
+- **API errors**: Verify database schema matches code
+- **Chart not loading**: Check browser console for JavaScript errors
+
 ## Pre-Deployment Checklist
 
 ### Code Quality
