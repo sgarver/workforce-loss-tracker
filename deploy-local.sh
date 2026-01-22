@@ -227,7 +227,7 @@ sudo systemctl start layoff-tracker
 echo "🏥 Running health check..."
 sleep 5
 if curl -f http://localhost:8080/ping > /dev/null 2>&1; then
-    echo "✅ Deployment successful! Server is responding."
+    echo "✅ Basic health check passed"
 else
     echo "❌ Health check failed! Rolling back..."
     sudo systemctl stop layoff-tracker
@@ -235,6 +235,33 @@ else
     sudo systemctl start layoff-tracker
     echo "🔄 Rollback completed"
     exit 1
+fi
+
+# Asset verification
+echo "🔍 Verifying deployment assets..."
+MISSING_ASSETS=()
+if [ ! -x "/opt/layoff-tracker/layoff-tracker" ]; then
+    MISSING_ASSETS+=("layoff-tracker binary")
+fi
+if [ ! -f "/opt/layoff-tracker/templates/dashboard.html" ]; then
+    MISSING_ASSETS+=("dashboard.html template")
+fi
+if [ ! -f "/opt/layoff-tracker/templates/layout.html" ]; then
+    MISSING_ASSETS+=("layout.html template")
+fi
+
+if [ ${#MISSING_ASSETS[@]} -gt 0 ]; then
+    echo "❌ Missing assets: ${MISSING_ASSETS[*]}"
+    exit 1
+fi
+echo "✅ All critical assets verified"
+
+# API functionality check
+echo "🔗 Testing API functionality..."
+if curl -f -s http://localhost:8080/api/stats | jq '.company_breakdown | length' > /dev/null 2>&1; then
+    echo "✅ API responding correctly"
+else
+    echo "⚠️  Warning: API not returning expected data (may be normal for database issues)"
 fi
 
 echo "🎉 Deployment completed successfully!"

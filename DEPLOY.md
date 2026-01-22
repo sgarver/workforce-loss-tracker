@@ -1,65 +1,109 @@
 # Deployment Guide
 
+## Overview
+
+This application uses a **hybrid deployment approach**: automated CI/CD on GitHub for builds and testing, combined with manual local deployment for production releases.
+
+**⚠️ Critical Note:** Always follow the complete deployment checklist. Recent deployments revealed missing assets (templates) that weren't caught by incomplete verification.
+
+## Pre-Deployment Checklist
+
+### Code Quality
+- [ ] All tests pass: `go test ./...`
+- [ ] Code builds successfully: `go build`
+- [ ] Linting passes (if configured)
+- [ ] No TODO comments for production blockers
+
+### Git Workflow
+- [ ] All changes committed to `staging` branch
+- [ ] `staging` and `main` branches are synchronized
+- [ ] CI/CD pipeline passes for `staging` branch
+- [ ] Manual review completed for `staging` → `main` merge
+
+### Database Considerations
+- [ ] Schema migrations tested on staging
+- [ ] Backup strategy in place
+- [ ] Data migration plan documented
+- [ ] Rollback plan for schema changes
+
+### Assets & Dependencies
+- [ ] All templates updated: `templates/*.html`
+- [ ] Static assets current: `static/*` files
+- [ ] Environment variables documented
+- [ ] External service credentials validated
+
 ## Production Deployment
 
-Deployments use a hybrid approach: automated CI on GitHub + manual local deployment.
-
 ### Automated CI Pipeline
-1. **Automatic CI:** Push to `main` → GitHub runs tests, security scans, and builds binary
+1. **Automatic CI:** Push to `main` → GitHub Actions run tests, security scans, and build artifacts
 2. **Manual CI:** Optional - trigger "Production CI" workflow for validation without push
 
-### Local Deployment
+### Local Deployment Process
 1. **Prerequisites:**
-   - GitHub CLI installed and authenticated: `gh auth login`
+   - GitHub CLI installed: `gh auth login`
    - SSH key for server access (default: `~/.ssh/github_actions_key`)
+   - Application running on target server
 
-2. **Configure (Optional):**
-   The script uses sensible defaults, but you can customize:
+2. **Configuration:**
    ```bash
-   export SERVER_HOST="workforceloss.com"  # default: workforceloss.com
-   export SSH_KEY_PATH="$HOME/.ssh/my_key"  # if different key location
-   export GITHUB_REPO="sgarver/workforce-loss-tracker"  # if different repo
+   # Optional environment variables
+   export SERVER_HOST="workforceloss.com"          # default: workforceloss.com
+   export SSH_KEY_PATH="$HOME/.ssh/my_key"         # if different key location
+   export GITHUB_REPO="sgarver/workforce-loss-tracker" # if different repo
    ```
 
-3. **Run Deployment:**
-   ```bash
-   ./deploy-local.sh
-   ```
-
-   **What it does:**
-   - Finds the latest successful CI run
-   - Downloads the built binary artifact
-   - Deploys to server with backup and health check
-   - Automatic rollback on failure
-   Defaults are provided for common setup.
-
-3. **Run Deployment:**
+3. **Execute Deployment:**
    ```bash
    ./deploy-local.sh
    ```
 
-3. **Process:**
-   - Downloads latest successful build artifact
-   - SCP binary to server
-   - SSH executes deployment (backup, update, restart, health check)
-   - Automatic rollback on failure
+4. **What Gets Deployed:**
+   - **Binary:** `layoff-tracker` (Go executable)
+   - **Templates:** `templates/*.html` (runtime-loaded)
+   - **Static Assets:** `static/*` (CSS, JS, images)
+   - **Database:** Auto-migration on startup
 
-## Rollback
+5. **Deployment Process:**
+   - Downloads latest successful CI artifact
+   - Creates server backup of current binary
+   - SCP binary + templates + static files to server
+   - SSH executes: stop → backup → deploy → start
+   - Health check with automatic rollback on failure
 
-If deployment causes issues:
+## Post-Deployment Verification
+
+### Immediate Checks
+- [ ] Health check passes: `curl https://workforceloss.com/ping`
+- [ ] Main page loads: `curl https://workforceloss.com/ | grep -q "<!DOCTYPE html"`
+- [ ] API endpoints respond: `curl https://workforceloss.com/api/stats | jq '.company_breakdown | length'`
+- [ ] All expected assets load (check browser dev tools for 404s)
+
+### Feature Verification
+- [ ] Core functionality works (search, filtering, etc.)
+- [ ] New features operational (charts, UI updates)
+- [ ] Database queries successful (no SQL errors)
+- [ ] External integrations working (if any)
+
+### Performance Checks
+- [ ] Page load times acceptable (< 3 seconds)
+- [ ] API response times reasonable (< 1 second)
+- [ ] Memory/CPU usage normal
+- [ ] Error rates in logs acceptable
+
+## Rollback Procedures
 
 ### Automatic Rollback
-The deploy script automatically rolls back to the previous version if health check fails.
+The deploy script automatically rolls back if health check fails within 30 seconds of startup.
 
 ### Manual Rollback (Server Side)
 ```bash
 # SSH to production server
-ssh linuxuser@[2001:19f0:5400:2f1e:5400:05ff:fee4:2ad6]
+ssh linuxuser@workforceloss.com
 
-# Go to app directory
+# Navigate to app directory
 cd /opt/layoff-tracker
 
-# List backups
+# List available backups
 ls -la layoff-tracker.backup.*
 
 # Restore latest backup (replace TIMESTAMP)
@@ -68,22 +112,122 @@ cp layoff-tracker.backup.TIMESTAMP layoff-tracker
 # Restart service
 sudo systemctl restart layoff-tracker
 
-# Verify
+# Verify restoration
 curl http://localhost:8080/ping
 ```
 
 ### Emergency Rollback
-If service won't start, check logs:
+If service won't start:
 ```bash
+# Check service status
+sudo systemctl status layoff-tracker
+
+# View recent logs
 sudo journalctl -u layoff-tracker -n 50
+
+# Check for common issues:
+# - Database corruption: Remove and recreate layoff_tracker.db
+# - Missing files: Verify all templates/static files present
+# - Port conflicts: Check if port 8080 is available
 ```
 
 ## Staging Deployment
 
-Push to `staging` branch → "Staging CI" workflow runs tests/security/build → Manual review → Merge to `main` for production.
+### Process
+1. Push feature branch → create PR to `staging`
+2. Automated CI runs tests/security/build on `staging`
+3. Manual review of changes and CI results
+4. Merge `staging` → `main` for production deployment
 
-## Monitoring
+### Staging Environment
+- **URL:** https://staging.workforceloss.com (if configured)
+- **Purpose:** Pre-production testing and validation
+- **Data:** Copy of production data or anonymized subset
 
-- **Health Check:** https://workforceloss.com/ping
-- **CI Status:** Check README badge or Actions tab
-- **Logs:** Server logs via `sudo journalctl -u layoff-tracker`
+## Troubleshooting
+
+### Common Deployment Issues
+
+#### Missing Assets (Templates/CSS/JS)
+**Symptoms:** Pages load but look broken, missing UI elements
+**Cause:** Deployment script didn't copy frontend assets
+**Fix:** Manually copy templates and static directories:
+```bash
+scp -r templates/ linuxuser@workforceloss.com:/opt/layoff-tracker/
+scp -r static/ linuxuser@workforceloss.com:/opt/layoff-tracker/
+sudo systemctl restart layoff-tracker
+```
+
+#### Database Schema Mismatch
+**Symptoms:** Import fails with "no column named X" errors
+**Cause:** Code expects different schema than production database
+**Fix:** Run migrations or recreate database with correct schema
+
+#### Service Won't Start
+**Symptoms:** systemctl status shows failed state
+**Check:**
+```bash
+sudo journalctl -u layoff-tracker -n 20
+# Look for: database errors, missing files, port conflicts
+```
+
+#### API Returns Empty Data
+**Symptoms:** Charts don't load, API returns `[]` or `{}`
+**Cause:** Import failed or database is empty
+**Check:**
+```bash
+# Check import logs
+sudo journalctl -u layoff-tracker | grep -i import
+
+# Check database
+sqlite3 /opt/layoff-tracker/layoff_tracker.db "SELECT COUNT(*) FROM layoffs;"
+```
+
+### Performance Issues
+- **Slow page loads:** Check database query performance
+- **High memory usage:** Monitor for memory leaks
+- **API timeouts:** Check database connection pool
+
+## Monitoring & Maintenance
+
+### Health Checks
+- **Service:** `curl https://workforceloss.com/ping`
+- **Database:** Check connection and query performance
+- **External APIs:** Verify third-party service availability
+
+### Logs
+- **Application:** `sudo journalctl -u layoff-tracker`
+- **System:** `/var/log/syslog` or `journalctl`
+- **Access:** nginx/apache logs if using reverse proxy
+
+### Backups
+- **Automatic:** Daily database backups
+- **Manual:** Before major changes
+- **Retention:** Keep 7 daily, 4 weekly, 12 monthly backups
+
+## Lessons Learned (Recent Deployment Issues)
+
+### Issue: Missing Template Files
+- **Problem:** Binary updated but templates not deployed
+- **Impact:** UI showed old version with missing charts
+- **Fix:** Updated `deploy-local.sh` to copy all assets
+- **Prevention:** Always verify all asset types deployed
+
+### Issue: Database Schema Drift
+- **Problem:** Local dev schema differed from production
+- **Impact:** Import failures and data inconsistencies
+- **Fix:** Recreated production database with correct schema
+- **Prevention:** Use migrations and test schema changes
+
+### Issue: Incomplete Verification
+- **Problem:** Only checked basic health, missed UI issues
+- **Impact:** Deployed broken interface
+- **Fix:** Added comprehensive post-deployment checklist
+- **Prevention:** Always verify all user-facing functionality
+
+### Best Practices Added
+- [ ] **Asset Verification:** Check all file types deployed
+- [ ] **Schema Sync:** Ensure database schemas match
+- [ ] **UI Testing:** Verify all pages and interactions
+- [ ] **Rollback Ready:** Test rollback procedures
+- [ ] **Monitoring:** Set up alerts for critical metrics
