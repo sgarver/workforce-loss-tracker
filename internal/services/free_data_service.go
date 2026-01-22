@@ -621,7 +621,10 @@ func EstimateCompanySize(companyName string) int {
 		return size
 	}
 
-	return 0 // Unknown size
+	// For unknown companies (typical small businesses in WARN data),
+	// provide a reasonable default estimate of 50-200 employees
+	// This is better than returning 0 which results in NULL in database
+	return 100 // Default estimate for unknown companies
 }
 
 // estimateSizeFromPatterns estimates company size based on name patterns and keywords

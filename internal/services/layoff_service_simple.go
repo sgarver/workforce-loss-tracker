@@ -941,14 +941,16 @@ func (s *LayoffService) GetOrCreateCompany(name, industry string) (int, error) {
 
 // UpdateCompanySizes updates existing companies that don't have employee counts
 func (s *LayoffService) UpdateCompanySizes() error {
-	rows, err := s.db.Query(`SELECT id, name FROM companies WHERE employee_count IS NULL`)
+	rows, err := s.db.Query(`SELECT id, name FROM companies WHERE employee_count IS NULL OR employee_count = 0`)
 	if err != nil {
 		return fmt.Errorf("error querying companies without sizes: %w", err)
 	}
 	defer rows.Close()
 
 	updated := 0
+	count := 0
 	for rows.Next() {
+		count++
 		var id int
 		var name string
 		if err := rows.Scan(&id, &name); err != nil {
@@ -964,15 +966,19 @@ func (s *LayoffService) UpdateCompanySizes() error {
 				updated++
 			}
 		} else {
-			// Set to NULL for unknown companies (estimatedSize = 0 means unknown)
-			_, err := s.db.Exec(`UPDATE companies SET employee_count = NULL WHERE id = ?`, id)
+			// For unknown companies, set a reasonable default instead of NULL
+			// This ensures the tracker page shows company sizes
+			defaultSize := 100 // Default estimate for unknown companies
+			_, err := s.db.Exec(`UPDATE companies SET employee_count = ? WHERE id = ?`, defaultSize, id)
 			if err != nil {
-				log.Printf("Error clearing company %d size: %v", id, err)
+				log.Printf("Error setting default company %d size: %v", id, err)
+			} else {
+				updated++
 			}
 		}
 	}
 
-	log.Printf("Updated employee counts for %d companies", updated)
+	log.Printf("Processed %d companies, updated %d with sizes", count, updated)
 	return nil
 }
 
