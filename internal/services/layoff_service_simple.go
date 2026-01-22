@@ -159,9 +159,6 @@ func (s *LayoffService) GetLayoffs(params models.FilterParams) (*models.Paginate
 
 		var employeesAffected sql.NullInt64
 		var layoffDate sql.NullTime
-		var sourceURL sql.NullString
-		var notes sql.NullString
-		var status sql.NullString
 		var createdAt sql.NullTime
 		var layoffCompanyID sql.NullInt64
 		var companyID sql.NullInt64
@@ -190,9 +187,6 @@ func (s *LayoffService) GetLayoffs(params models.FilterParams) (*models.Paginate
 			layoff.LayoffDate = time.Time{}
 			layoff.DisplayDate = "unknown"
 		}
-		layoff.SourceURL = sourceURL
-		layoff.Notes = notes
-		layoff.Status = status
 		if createdAt.Valid {
 			layoff.CreatedAt = createdAt.Time
 		} else {
@@ -313,9 +307,6 @@ func (s *LayoffService) GetLayoff(layoffID int) (*models.Layoff, error) {
 	} else {
 		layoff.DisplayDate = "unknown"
 	}
-	layoff.SourceURL = sourceURL
-	layoff.Notes = notes
-	layoff.Status = status
 	if createdAt.Valid {
 		layoff.CreatedAt = createdAt.Time
 	} else {
@@ -845,9 +836,6 @@ func (s *LayoffService) GetCurrentLayoffs() (*models.PaginatedResult, error) {
 			layoff.LayoffDate = time.Time{}
 			layoff.DisplayDate = "unknown"
 		}
-		layoff.SourceURL = sourceURL
-		layoff.Notes = notes
-		layoff.Status = status
 		if createdAt.Valid {
 			layoff.CreatedAt = createdAt.Time
 		} else {

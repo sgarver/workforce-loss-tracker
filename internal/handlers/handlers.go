@@ -390,6 +390,12 @@ func (h *Handler) Tracker(c echo.Context) error {
 		normalizedCompany := *layoff.Company // Copy the struct
 		normalizedCompany.Name = displayName
 
+		// Convert sql.NullString to simple string for template
+		sourceURL := ""
+		if layoff.SourceURL.Valid {
+			sourceURL = layoff.SourceURL.String
+		}
+
 		layoffMap := map[string]interface{}{
 			"ID":                layoff.ID,
 			"CompanyID":         layoff.CompanyID,
@@ -397,7 +403,7 @@ func (h *Handler) Tracker(c echo.Context) error {
 			"EmployeesAffected": layoff.EmployeesAffected,
 			"LayoffDate":        layoff.LayoffDate,
 			"DisplayDate":       layoff.DisplayDate,
-			"SourceURL":         layoff.SourceURL,
+			"SourceURL":         sourceURL,
 			"Notes":             layoff.Notes,
 			"Status":            layoff.Status,
 			"CreatedAt":         layoff.CreatedAt,
