@@ -61,7 +61,7 @@ func TestEstimateCompanySize(t *testing.T) {
 		expected    int
 	}{
 		{"Apple", 147000},
-		{"Unknown Startup", 0}, // Unknown companies return 0 (nullable)
+		{"Unknown Startup", -1}, // Unknown companies return -1 (unknown indicator)
 		{"Microsoft", 221000},
 	}
 
