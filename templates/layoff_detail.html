@@ -29,12 +29,6 @@
                 <p class="text-lg text-gray-900 dark:text-white">{{.Layoff.LayoffDate.Format "January 2, 2006"}}</p>
             </div>
         </div>
-        {{if .Layoff.SourceURL.Valid}}
-        <div class="mt-6">
-            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Source</h3>
-            <a href="{{.Layoff.SourceURL.String}}" target="_blank" class="text-primary-600 hover:text-primary-700 break-all">{{.Layoff.SourceURL.String}}</a>
-        </div>
-        {{end}}
         {{if .Layoff.Notes.Valid}}
         <div class="mt-6">
             <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Additional Notes</h3>
