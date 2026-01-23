@@ -158,6 +158,16 @@ else
     echo "⚠️  Warning: No static directory found"
 fi
 
+# Upload migrations
+echo "📋 Uploading migrations..."
+if [ -d "migrations" ]; then
+    if ! scp -r migrations "$SCP_TARGET:/tmp/"; then
+        echo "⚠️  Warning: Failed to upload migrations"
+    fi
+else
+    echo "⚠️  Warning: No migrations directory found"
+fi
+
 # Execute deployment on server
 echo "🔄 Executing deployment on server..."
 if ! ssh "$SSH_TARGET" << 'EOF'
@@ -181,7 +191,7 @@ fi
 cp /tmp/layoff-tracker /opt/layoff-tracker/layoff-tracker
 echo "📦 New binary deployed"
 
-# Deploy templates and static files
+# Deploy templates, static files, and migrations
 if [ -d "/tmp/templates" ]; then
     cp -r /tmp/templates/* /opt/layoff-tracker/templates/ 2>/dev/null || echo "⚠️  Some template files may not have copied"
     echo "📄 Templates deployed"
@@ -189,6 +199,10 @@ fi
 if [ -d "/tmp/static" ]; then
     cp -r /tmp/static/* /opt/layoff-tracker/static/ 2>/dev/null || echo "⚠️  Some static files may not have copied"
     echo "🖼️  Static files deployed"
+fi
+if [ -d "/tmp/migrations" ]; then
+    cp -r /tmp/migrations/* /opt/layoff-tracker/migrations/ 2>/dev/null || echo "⚠️  Some migration files may not have copied"
+    echo "📋 Migrations deployed"
 fi
 
 # Set proper permissions
