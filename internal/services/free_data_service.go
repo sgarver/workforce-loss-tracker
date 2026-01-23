@@ -621,9 +621,9 @@ func EstimateCompanySize(companyName string) int {
 		return size
 	}
 
-	// For unknown companies, return 0 to indicate unknown size
+	// For unknown companies, return -1 to indicate unknown size
 	// This will be displayed as "Unknown" in the UI
-	return 0 // Unknown size indicator
+	return -1 // Unknown size indicator
 }
 
 // estimateSizeFromPatterns estimates company size based on name patterns and keywords
