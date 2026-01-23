@@ -1,7 +1,7 @@
 # Workforce Loss Tracker
 
-[![CI](https://github.com/sgarver/workforce-loss-tracker/actions/workflows/production-deploy.yml/badge.svg?branch=main)](https://github.com/sgarver/workforce-loss-tracker/actions/workflows/production-deploy.yml)
 [![Staging CI](https://github.com/sgarver/workforce-loss-tracker/actions/workflows/staging-ci.yml/badge.svg?branch=staging)](https://github.com/sgarver/workforce-loss-tracker/actions/workflows/staging-ci.yml)
+[![CI](https://github.com/sgarver/workforce-loss-tracker/actions/workflows/production-deploy.yml/badge.svg?branch=main)](https://github.com/sgarver/workforce-loss-tracker/actions/workflows/production-deploy.yml)
 
 A web application for tracking workforce reductions across industries using data from public WARN Act filings. Features include automated data import, web dashboard, filtering and search, layoff detail pages, CSV export, and notification system.
 
