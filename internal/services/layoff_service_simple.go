@@ -955,12 +955,11 @@ func (s *LayoffService) UpdateCompanySizes() error {
 				updated++
 			}
 		} else {
-			// For unknown companies, set a reasonable default instead of NULL
-			// This ensures the tracker page shows company sizes
-			defaultSize := 100 // Default estimate for unknown companies
-			_, err := s.db.Exec(`UPDATE companies SET employee_count = ? WHERE id = ?`, defaultSize, id)
+			// For unknown companies, set to 0 to indicate unknown size
+			// This will be displayed as "Unknown" in the UI
+			_, err := s.db.Exec(`UPDATE companies SET employee_count = 0 WHERE id = ?`, id)
 			if err != nil {
-				log.Printf("Error setting default company %d size: %v", id, err)
+				log.Printf("Error setting unknown company %d size: %v", id, err)
 			} else {
 				updated++
 			}
