@@ -930,7 +930,7 @@ func (s *LayoffService) GetOrCreateCompany(name, industry string) (int, error) {
 
 // UpdateCompanySizes updates existing companies that don't have employee counts
 func (s *LayoffService) UpdateCompanySizes() error {
-	rows, err := s.db.Query(`SELECT id, name FROM companies WHERE employee_count IS NULL OR employee_count = 0`)
+	rows, err := s.db.Query(`SELECT id, name FROM companies WHERE employee_count IS NULL OR employee_count = -1`)
 	if err != nil {
 		return fmt.Errorf("error querying companies without sizes: %w", err)
 	}
@@ -955,9 +955,9 @@ func (s *LayoffService) UpdateCompanySizes() error {
 				updated++
 			}
 		} else {
-			// For unknown companies, set to 0 to indicate unknown size
+			// For unknown companies, set to -1 to indicate unknown size
 			// This will be displayed as "Unknown" in the UI
-			_, err := s.db.Exec(`UPDATE companies SET employee_count = 0 WHERE id = ?`, id)
+			_, err := s.db.Exec(`UPDATE companies SET employee_count = -1 WHERE id = ?`, id)
 			if err != nil {
 				log.Printf("Error setting unknown company %d size: %v", id, err)
 			} else {
