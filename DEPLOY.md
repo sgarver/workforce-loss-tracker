@@ -20,6 +20,8 @@ Follow this process to ensure smooth deployments and catch issues before they re
 
 ### Step-by-Step Workflow
 
+For ruleset validation, use a doc-only change on a dev branch.
+
 #### **1. Development (dev branch)**
 - Create an ephemeral dev branch from `staging`
 - Make changes and commit regularly on the dev branch
