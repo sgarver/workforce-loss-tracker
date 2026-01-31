@@ -112,13 +112,23 @@ Create `.env` for local development:
 GO_ENV=development
 PORT=8080
 BASE_URL=http://localhost:8080
+SESSION_SECRET=your-session-secret
 
 # Use test OAuth credentials for local development
 GOOGLE_CLIENT_ID=your-test-client-id
 GOOGLE_CLIENT_SECRET=your-test-secret
 
 DATABASE_PATH=layoff_tracker.db
+
+# SMTP (for email verification/reset)
+SMTP_HOST=localhost
+SMTP_PORT=25
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=alerts@localhost
 ```
+
+If SMTP is not configured and GO_ENV is development, the app shows a dev-only verification/reset link on the verify and forgot password pages.
 
 #### Local OAuth Setup
 For local testing, create test OAuth credentials in Google Console:

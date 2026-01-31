@@ -1,0 +1,56 @@
+<section class="max-w-md mx-auto">
+    <div class="card-bg border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl p-8">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Sign in</h1>
+        <p class="text-sm text-gray-600 dark:text-gray-300 mt-2">Access your alerts and saved views.</p>
+
+        {{if .Message}}
+        <div class="mt-4 rounded-lg bg-green-50 text-green-700 px-4 py-3 text-sm border border-green-200">
+            {{.Message}}
+        </div>
+        {{end}}
+
+        {{if .Error}}
+        <div class="mt-4 rounded-lg bg-red-50 text-red-700 px-4 py-3 text-sm border border-red-200">
+            {{.Error}}
+        </div>
+        {{end}}
+
+        <form class="mt-6 space-y-4" method="POST" action="/auth/login">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                <input type="email" name="email" value="{{.Email}}" required class="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white" placeholder="you@example.com">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+                <input type="password" name="password" required class="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white" placeholder="Your password">
+            </div>
+            <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all hover:shadow-lg">
+                Sign in
+            </button>
+        </form>
+
+        <div class="mt-4">
+            <a href="/auth/forgot" class="text-sm text-primary-600 hover:text-primary-700 font-medium">Forgot your password?</a>
+        </div>
+
+        {{if .ShowResend}}
+        <form class="mt-6" method="POST" action="/auth/resend-verification">
+            <input type="hidden" name="email" value="{{.Email}}">
+            <button type="submit" class="w-full border border-primary-600 text-primary-600 hover:bg-primary-50 dark:hover:bg-gray-800 px-4 py-2 rounded-lg text-sm font-medium transition-all">
+                Resend verification email
+            </button>
+        </form>
+        {{end}}
+
+        <div class="mt-6">
+            <a href="/auth/google" class="w-full inline-flex items-center justify-center border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 px-4 py-2 rounded-lg text-sm font-medium transition-all">
+                Continue with Google
+            </a>
+        </div>
+
+        <div class="mt-6 text-center text-sm text-gray-600 dark:text-gray-300">
+            New here?
+            <a href="/auth/register" class="text-primary-600 hover:text-primary-700 font-medium">Create an account</a>
+        </div>
+    </div>
+</section>
