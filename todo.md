@@ -56,4 +56,4 @@ Getting Production Ready
  - [ ] improve industry detection to 80-90% (requires domain for Clearbit API signup)
  - [x] rebrand to "Workforce Loss Tracker" to match workforceloss.com domain
 
-Last updated: 2026-01-31 14:32 PST (add ruleset dry-run note)
+Last updated: 2026-01-31 14:49 PST (add sqlite busy_timeout and synchronous pragmas)
