@@ -51,6 +51,9 @@ func main() {
 	if databasePath == "" {
 		databasePath = "/tmp/layoff_tracker.db"
 	}
+	if strings.EqualFold(os.Getenv("GO_ENV"), "production") && strings.HasPrefix(databasePath, "/tmp/") {
+		log.Fatalf("Refusing to use /tmp database path in production: %s", databasePath)
+	}
 	log.Printf("Using database path: %s", databasePath)
 	db, err := database.NewDB(databasePath)
 	if err != nil {
