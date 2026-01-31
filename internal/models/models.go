@@ -115,14 +115,21 @@ type PaginatedResult struct {
 }
 
 type User struct {
-	ID         int       `json:"id" db:"id"`
-	Provider   string    `json:"provider" db:"provider"`
-	ProviderID string    `json:"provider_id" db:"provider_id"`
-	Email      string    `json:"email" db:"email"`
-	Name       string    `json:"name" db:"name"`
-	AvatarURL  string    `json:"avatar_url" db:"avatar_url"`
-	IsAdmin    bool      `json:"is_admin" db:"is_admin"`
-	CreatedAt  time.Time `json:"created_at" db:"created_at"`
+	ID                    int            `json:"id" db:"id"`
+	Provider              string         `json:"provider" db:"provider"`
+	ProviderID            string         `json:"provider_id" db:"provider_id"`
+	Email                 string         `json:"email" db:"email"`
+	Name                  string         `json:"name" db:"name"`
+	AvatarURL             string         `json:"avatar_url" db:"avatar_url"`
+	IsAdmin               bool           `json:"is_admin" db:"is_admin"`
+	PasswordHash          sql.NullString `json:"-" db:"password_hash"`
+	EmailVerified         bool           `json:"email_verified" db:"email_verified"`
+	VerificationToken     sql.NullString `json:"-" db:"verification_token"`
+	VerificationExpiresAt sql.NullTime   `json:"-" db:"verification_expires_at"`
+	ResetToken            sql.NullString `json:"-" db:"reset_token"`
+	ResetExpiresAt        sql.NullTime   `json:"-" db:"reset_expires_at"`
+	LastLoginAt           sql.NullTime   `json:"last_login_at" db:"last_login_at"`
+	CreatedAt             time.Time      `json:"created_at" db:"created_at"`
 }
 
 type Stats struct {

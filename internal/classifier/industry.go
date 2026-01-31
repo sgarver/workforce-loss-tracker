@@ -100,13 +100,7 @@ func (c *IndustryClassifier) ClassifyIndustry(companyName string) (industry stri
 		confidence = 0
 	} else {
 		// Higher confidence for lower priority numbers and multiple matches
-		confidence = 100 - (bestPriority * 20) + (matchCount * 5)
-		if confidence > 100 {
-			confidence = 100
-		}
-		if confidence < 10 {
-			confidence = 10
-		}
+		confidence = max(min(100-(bestPriority*20)+(matchCount*5), 100), 10)
 	}
 
 	return bestMatch, confidence
