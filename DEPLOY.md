@@ -20,11 +20,11 @@ Follow this process to ensure smooth deployments and catch issues before they re
 
 ### Step-by-Step Workflow
 
-#### **1. Development (staging branch)**
-- Create feature branch from `staging`
-- Make changes and commit regularly
+#### **1. Development (dev branch)**
+- Create an ephemeral dev branch from `staging`
+- Make changes and commit regularly on the dev branch
 - Test changes in local development environment
-- Push to `staging` branch when ready for integration
+- Do not merge to `staging` until the milestone is completed and verified locally
 
 #### **2. Local Verification**
 - **Required**: Test all changes locally before merging
@@ -34,10 +34,9 @@ Follow this process to ensure smooth deployments and catch issues before they re
 - Test: All user interactions work correctly
 
 #### **3. Merge to Main**
-- **Only after local verification passes**
-- Create pull request: `staging` → `main`
-- Wait for CI/CD checks to pass
-- Merge only when all tests pass and review is complete
+- **Only after local verification and explicit approval**
+- Merge dev → `staging` and wait for CI/CD checks to pass
+- Merge `staging` → `main` only when tests pass and review is complete
 
 #### **4. Production Deployment**
 - Run `./deploy-local.sh` from main branch

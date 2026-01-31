@@ -55,28 +55,44 @@ Before any commit, always include this prompt:
 **Ready to commit?** Please reply with "commit" to approve, or provide feedback for changes.
 ```
 
-**2. Approval Order is Critical**
-- **NEVER commit before approval** - Wait for explicit "commit" confirmation
-- Show checklist and prompt FIRST
-- Commit SECOND (only after approval received)
-- If user provides feedback instead of "commit", address feedback and re-prompt
+**2. Pre-Merge Confirmation**
+Before merging dev → `staging` or `staging` → `main`, always include this prompt:
+```
+**Ready to promote?** Please reply with "approve" to proceed, or provide feedback for changes.
+```
 
-**3. Checklist Accuracy**
+**3. Approval Order is Critical**
+- **NEVER commit before approval** - Wait for explicit "commit" confirmation
+- **NEVER merge between branches before approval** - Wait for explicit "approve" confirmation
+- Show checklist and prompt FIRST
+- Commit or merge SECOND (only after approval received)
+- If user provides feedback instead of the approval keyword, address feedback and re-prompt
+
+**4. Checklist Accuracy**
 - Only check [x] items that were actually completed
 - Mark N/A items as such (e.g., "Build Success: N/A - documentation only")
 - Never check "User Approval" until user explicitly approves
 
-**4. Protocol Reminder**
+**5. Protocol Reminder**
 Include this reminder for all changes:
 *"Following AGENTS.md protocol: Waiting for explicit user approval before committing"*
 
-**5. No Assumptions**
+**6. No Assumptions**
 Never assume approval for any change type - always require explicit "commit" confirmation, even for documentation, README updates, or minor fixes.
 
 ## Task Management
 
 - All current and ongoing tasks are stored in `todo.md`.
 - Update `todo.md` with new tasks, mark completed tasks, and update timestamps as needed.
+
+## Branching Policy (Milestone Work)
+
+When starting a new milestone:
+- Create an ephemeral dev branch from `staging`.
+- Only work on that dev branch until the milestone is completed and verified locally.
+- After user approval, merge dev → `staging`, then `staging` → `main`, then deploy.
+
+Recommended dev branch naming: `feature/<milestone>`.
 
 ## Complete SDLC Process
 
@@ -89,7 +105,8 @@ For all changes (not just Go files), follow this Software Development Lifecycle:
 - Test locally: build, unit tests, integration tests, manual verification
 
 ### 2. Staging Deployment
-- **Push to `staging` branch** for CI validation
+- **Merge dev → `staging`** only after user approval (use approval keyword below)
+- Push to `staging` for CI validation
 - CI runs: Tests, Security scan, Build, Integration tests
 - Monitor staging CI results
 - If staging fails, fix issues and re-push to staging
@@ -106,6 +123,7 @@ For all changes (not just Go files), follow this Software Development Lifecycle:
 
 ### Key Principles
 - **Never push directly to main** - always validate on staging first
+- **Do not commit directly to `main` for milestone work**; use dev branch then merge
 - **Require explicit user approval** before any commits
 - **Test thoroughly** at each stage
 - **Document all processes** in `DEPLOY.md`
