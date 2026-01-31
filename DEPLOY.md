@@ -123,6 +123,7 @@ go build -o layoff-tracker .
    export GITHUB_REPO="sgarver/workforce-loss-tracker" # if different repo
    export DATABASE_PATH="/var/lib/layoff-tracker/layoff_tracker.db" # service override
    ```
+   Note: do not use `/tmp` for production databases. `/tmp` can be cleaned on reboot.
 
 3. **Execute Deployment:**
    ```bash
