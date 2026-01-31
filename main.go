@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gorilla/sessions"
@@ -46,7 +47,12 @@ func main() {
 	}
 
 	// Initialize database
-	db, err := database.NewDB("/tmp/layoff_tracker.db")
+	databasePath := strings.TrimSpace(os.Getenv("DATABASE_PATH"))
+	if databasePath == "" {
+		databasePath = "/tmp/layoff_tracker.db"
+	}
+	log.Printf("Using database path: %s", databasePath)
+	db, err := database.NewDB(databasePath)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
