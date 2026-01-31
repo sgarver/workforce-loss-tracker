@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"database/sql"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -10,6 +11,8 @@ import (
 	"layoff-tracker/internal/services"
 	"log"
 	"net/http"
+	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -30,16 +33,46 @@ type Handler struct {
 	layoffService   *services.LayoffService
 	userService     *services.UserService
 	freeDataService *services.FreeDataService
+	authMailer      *services.AuthMailer
 	templates       *template.Template
 }
 
-func NewHandler(layoffService *services.LayoffService, userService *services.UserService, freeDataService *services.FreeDataService, templates *template.Template) *Handler {
+func NewHandler(layoffService *services.LayoffService, userService *services.UserService, freeDataService *services.FreeDataService, authMailer *services.AuthMailer, templates *template.Template) *Handler {
 	return &Handler{
 		layoffService:   layoffService,
 		userService:     userService,
 		freeDataService: freeDataService,
+		authMailer:      authMailer,
 		templates:       templates,
 	}
+}
+
+func (h *Handler) renderWithLayout(c echo.Context, templateName, title, activePage string, data map[string]interface{}) error {
+	var contentBuf bytes.Buffer
+	if data == nil {
+		data = map[string]interface{}{}
+	}
+	if err := h.templates.ExecuteTemplate(&contentBuf, templateName, data); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	layoutData := map[string]interface{}{
+		"Title":      title,
+		"ActivePage": activePage,
+		"Content":    template.HTML(contentBuf.String()),
+		"User":       h.getCurrentUser(c),
+	}
+
+	return c.Render(http.StatusOK, "layout.html", layoutData)
+}
+
+func isDevMode() bool {
+	goEnv := strings.ToLower(strings.TrimSpace(os.Getenv("GO_ENV")))
+	if goEnv == "development" || goEnv == "dev" {
+		return true
+	}
+	baseURL := strings.ToLower(strings.TrimSpace(os.Getenv("BASE_URL")))
+	return strings.Contains(baseURL, "localhost") || strings.Contains(baseURL, "127.0.0.1")
 }
 
 // getIndustryColor returns a unique color scheme for industry badges
@@ -116,9 +149,26 @@ func (h *Handler) getCurrentUser(c echo.Context) *models.User {
 		log.Printf("No user_id in session")
 		return nil
 	}
-	userIDI, ok := userID.(int)
-	if !ok {
-		log.Printf("user_id not int: %v", userID)
+	if isDevMode() {
+		log.Printf("Session user_id raw: %T %v", userID, userID)
+	}
+	var userIDI int
+	switch value := userID.(type) {
+	case int:
+		userIDI = value
+	case int64:
+		userIDI = int(value)
+	case float64:
+		userIDI = int(value)
+	case string:
+		parsed, err := strconv.Atoi(value)
+		if err != nil {
+			log.Printf("user_id string parse error: %v", err)
+			return nil
+		}
+		userIDI = parsed
+	default:
+		log.Printf("user_id unsupported type: %T", userID)
 		return nil
 	}
 	user, err := h.userService.GetUserByID(userIDI)
@@ -135,6 +185,34 @@ func (h *Handler) getCurrentUser(c echo.Context) *models.User {
 	return user
 }
 
+func (h *Handler) DebugSession(c echo.Context) error {
+	if !isDevMode() {
+		return c.NoContent(http.StatusNotFound)
+	}
+
+	sess, err := session.Get("session", c)
+	values := map[string]string{}
+	if err == nil {
+		for key, value := range sess.Values {
+			values[fmt.Sprintf("%v", key)] = fmt.Sprintf("%T:%v", value, value)
+		}
+	}
+
+	currentUser := h.getCurrentUser(c)
+	userSummary := map[string]interface{}{}
+	if currentUser != nil {
+		userSummary["id"] = currentUser.ID
+		userSummary["email"] = currentUser.Email
+		userSummary["is_admin"] = currentUser.IsAdmin
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"session_error":  fmt.Sprintf("%v", err),
+		"session_values": values,
+		"current_user":   userSummary,
+	})
+}
+
 func (h *Handler) Profile(c echo.Context) error {
 	user := h.getCurrentUser(c)
 	if user == nil {
@@ -146,25 +224,10 @@ func (h *Handler) Profile(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	// Render profile content
-	var contentBuf bytes.Buffer
-	data := map[string]interface{}{
+	return h.renderWithLayout(c, "profile.html", "Workforce Loss Tracker - Profile", "", map[string]interface{}{
 		"User":  user,
 		"Prefs": prefs,
-	}
-	err = h.templates.ExecuteTemplate(&contentBuf, "profile.html", data)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-	}
-
-	layoutData := map[string]interface{}{
-		"Title":      "Workforce Loss Tracker - Profile",
-		"ActivePage": "",
-		"Content":    template.HTML(contentBuf.String()),
-		"User":       user,
-	}
-
-	return c.Render(http.StatusOK, "layout.html", layoutData)
+	})
 }
 
 func (h *Handler) UpdateProfile(c echo.Context) error {
@@ -182,6 +245,298 @@ func (h *Handler) UpdateProfile(c echo.Context) error {
 	}
 
 	return c.Redirect(http.StatusSeeOther, "/profile")
+}
+
+func (h *Handler) RegisterForm(c echo.Context) error {
+	return h.renderWithLayout(c, "register.html", "Workforce Loss Tracker - Create Account", "", map[string]interface{}{})
+}
+
+func (h *Handler) Register(c echo.Context) error {
+	name := strings.TrimSpace(c.FormValue("name"))
+	email := strings.TrimSpace(c.FormValue("email"))
+	password := c.FormValue("password")
+	confirm := c.FormValue("confirm_password")
+
+	if email == "" || password == "" {
+		return h.renderWithLayout(c, "register.html", "Workforce Loss Tracker - Create Account", "", map[string]interface{}{
+			"Error": "Email and password are required.",
+			"Email": email,
+			"Name":  name,
+		})
+	}
+	if len(password) < 8 {
+		return h.renderWithLayout(c, "register.html", "Workforce Loss Tracker - Create Account", "", map[string]interface{}{
+			"Error": "Password must be at least 8 characters.",
+			"Email": email,
+			"Name":  name,
+		})
+	}
+	if confirm != "" && confirm != password {
+		return h.renderWithLayout(c, "register.html", "Workforce Loss Tracker - Create Account", "", map[string]interface{}{
+			"Error": "Passwords do not match.",
+			"Email": email,
+			"Name":  name,
+		})
+	}
+	if name == "" {
+		parts := strings.Split(email, "@")
+		if len(parts) > 0 {
+			name = parts[0]
+		}
+	}
+
+	user, err := h.userService.CreateEmailUser(email, password, name)
+	if err != nil {
+		log.Printf("CreateEmailUser failed for %s: %v", email, err)
+		message := "Unable to create account."
+		if errors.Is(err, services.ErrEmailAlreadyInUse) {
+			message = "An account with that email already exists."
+		} else if isDevMode() {
+			message = fmt.Sprintf("Unable to create account: %v", err)
+		}
+		return h.renderWithLayout(c, "register.html", "Workforce Loss Tracker - Create Account", "", map[string]interface{}{
+			"Error": message,
+			"Email": email,
+			"Name":  name,
+		})
+	}
+
+	devToken := ""
+	if user.VerificationToken.Valid {
+		if err := h.authMailer.SendVerificationEmail(user.Email, user.Name, user.VerificationToken.String); err != nil {
+			log.Printf("Error sending verification email: %v", err)
+		}
+		if !h.authMailer.Configured() && isDevMode() {
+			devToken = user.VerificationToken.String
+		}
+	}
+
+	params := url.Values{}
+	params.Set("email", user.Email)
+	params.Set("sent", "1")
+	if devToken != "" {
+		params.Set("dev_token", devToken)
+	}
+	return c.Redirect(http.StatusSeeOther, "/auth/verify?"+params.Encode())
+}
+
+func (h *Handler) LoginForm(c echo.Context) error {
+	data := map[string]interface{}{}
+	if c.QueryParam("verified") == "1" {
+		data["Message"] = "Email verified. Please sign in."
+	}
+	if c.QueryParam("reset") == "1" {
+		data["Message"] = "Password reset successful. Please sign in."
+	}
+	if c.QueryParam("resent") == "1" {
+		data["Message"] = "Verification email sent. Check your inbox."
+	}
+	return h.renderWithLayout(c, "login.html", "Workforce Loss Tracker - Sign In", "", data)
+}
+
+func (h *Handler) Login(c echo.Context) error {
+	email := strings.TrimSpace(c.FormValue("email"))
+	password := c.FormValue("password")
+
+	if email == "" || password == "" {
+		return h.renderWithLayout(c, "login.html", "Workforce Loss Tracker - Sign In", "", map[string]interface{}{
+			"Error": "Email and password are required.",
+			"Email": email,
+		})
+	}
+
+	user, err := h.userService.AuthenticateEmail(email, password)
+	if err != nil {
+		log.Printf("Login failed for %s: %v", email, err)
+		if errors.Is(err, services.ErrEmailNotVerified) {
+			return h.renderWithLayout(c, "login.html", "Workforce Loss Tracker - Sign In", "", map[string]interface{}{
+				"Error":      "Please verify your email before signing in.",
+				"Email":      email,
+				"ShowResend": true,
+			})
+		}
+		return h.renderWithLayout(c, "login.html", "Workforce Loss Tracker - Sign In", "", map[string]interface{}{
+			"Error": "Invalid email or password.",
+			"Email": email,
+		})
+	}
+
+	sess, _ := session.Get("session", c)
+	sess.Values["user_id"] = user.ID
+	if err := sess.Save(c.Request(), c.Response()); err != nil {
+		log.Printf("Session save failed for %s: %v", email, err)
+		return h.renderWithLayout(c, "login.html", "Workforce Loss Tracker - Sign In", "", map[string]interface{}{
+			"Error": "Unable to start session. Please try again.",
+			"Email": email,
+		})
+	}
+
+	h.userService.LogSessionEvent(user.ID, "login", c.RealIP(), c.Request().UserAgent())
+	log.Printf("Login succeeded for %s (user_id=%d)", email, user.ID)
+	return c.Redirect(http.StatusSeeOther, "/")
+}
+
+func (h *Handler) VerifyEmail(c echo.Context) error {
+	token := strings.TrimSpace(c.QueryParam("token"))
+	email := strings.TrimSpace(c.QueryParam("email"))
+
+	if token != "" {
+		_, err := h.userService.VerifyEmail(token)
+		if err == nil {
+			return c.Redirect(http.StatusSeeOther, "/auth/login?verified=1")
+		}
+
+		if isDevMode() && email != "" {
+			if user, lookupErr := h.userService.GetUserByEmail(email); lookupErr == nil && user != nil && user.EmailVerified {
+				return h.renderWithLayout(c, "verify_email.html", "Workforce Loss Tracker - Verify Email", "", map[string]interface{}{
+					"Message": "Email already verified. Please sign in.",
+					"Email":   email,
+				})
+			}
+		}
+
+		if errors.Is(err, services.ErrVerificationExpired) {
+			return h.renderWithLayout(c, "verify_email.html", "Workforce Loss Tracker - Verify Email", "", map[string]interface{}{
+				"Error": "Verification link expired. Request a new one below.",
+			})
+		}
+		return h.renderWithLayout(c, "verify_email.html", "Workforce Loss Tracker - Verify Email", "", map[string]interface{}{
+			"Error": "Verification link is invalid. Request a new one below.",
+		})
+	}
+
+	data := map[string]interface{}{
+		"Email": email,
+	}
+	if devToken := strings.TrimSpace(c.QueryParam("dev_token")); devToken != "" && isDevMode() {
+		devLink := "/auth/verify?token=" + url.QueryEscape(devToken)
+		if email != "" {
+			devLink += "&email=" + url.QueryEscape(email)
+		}
+		data["DevLink"] = devLink
+	}
+	if c.QueryParam("sent") == "1" {
+		data["Message"] = "Verification email sent. Check your inbox."
+	}
+	if c.QueryParam("resent") == "1" {
+		data["Message"] = "If an account exists, a verification email has been sent."
+	}
+
+	return h.renderWithLayout(c, "verify_email.html", "Workforce Loss Tracker - Verify Email", "", data)
+}
+
+func (h *Handler) ResendVerification(c echo.Context) error {
+	email := strings.TrimSpace(c.FormValue("email"))
+
+	token, user, err := h.userService.ResendVerification(email)
+	if err != nil {
+		log.Printf("Error resending verification: %v", err)
+	}
+	if token != "" && user != nil {
+		if err := h.authMailer.SendVerificationEmail(user.Email, user.Name, token); err != nil {
+			log.Printf("Error sending verification email: %v", err)
+		}
+	}
+
+	params := url.Values{}
+	params.Set("email", email)
+	params.Set("resent", "1")
+	if token != "" && !h.authMailer.Configured() && isDevMode() {
+		params.Set("dev_token", token)
+	}
+	return c.Redirect(http.StatusSeeOther, "/auth/verify?"+params.Encode())
+}
+
+func (h *Handler) ForgotPasswordForm(c echo.Context) error {
+	data := map[string]interface{}{}
+	if c.QueryParam("sent") == "1" {
+		data["Message"] = "If an account exists, a reset link has been sent."
+	}
+	if devToken := strings.TrimSpace(c.QueryParam("dev_token")); devToken != "" && isDevMode() {
+		data["DevLink"] = "/auth/reset?token=" + url.QueryEscape(devToken)
+	}
+	return h.renderWithLayout(c, "forgot_password.html", "Workforce Loss Tracker - Forgot Password", "", data)
+}
+
+func (h *Handler) ForgotPassword(c echo.Context) error {
+	email := strings.TrimSpace(c.FormValue("email"))
+	if email == "" {
+		return h.renderWithLayout(c, "forgot_password.html", "Workforce Loss Tracker - Forgot Password", "", map[string]interface{}{
+			"Error": "Email is required.",
+		})
+	}
+
+	token, err := h.userService.StartPasswordReset(email)
+	if err != nil {
+		log.Printf("Error starting password reset: %v", err)
+	}
+	if token != "" {
+		user, _ := h.userService.GetUserByEmail(email)
+		name := ""
+		if user != nil {
+			name = user.Name
+		}
+		if err := h.authMailer.SendResetEmail(email, name, token); err != nil {
+			log.Printf("Error sending reset email: %v", err)
+		}
+	}
+
+	params := url.Values{}
+	params.Set("sent", "1")
+	if token != "" && !h.authMailer.Configured() && isDevMode() {
+		params.Set("dev_token", token)
+	}
+	return c.Redirect(http.StatusSeeOther, "/auth/forgot?"+params.Encode())
+}
+
+func (h *Handler) ResetPasswordForm(c echo.Context) error {
+	token := strings.TrimSpace(c.QueryParam("token"))
+	if token == "" {
+		return h.renderWithLayout(c, "reset_password.html", "Workforce Loss Tracker - Reset Password", "", map[string]interface{}{
+			"Error": "Reset link is invalid. Please request a new one.",
+		})
+	}
+
+	return h.renderWithLayout(c, "reset_password.html", "Workforce Loss Tracker - Reset Password", "", map[string]interface{}{
+		"Token": token,
+	})
+}
+
+func (h *Handler) ResetPassword(c echo.Context) error {
+	token := strings.TrimSpace(c.FormValue("token"))
+	password := c.FormValue("password")
+	confirm := c.FormValue("confirm_password")
+
+	if token == "" {
+		return h.renderWithLayout(c, "reset_password.html", "Workforce Loss Tracker - Reset Password", "", map[string]interface{}{
+			"Error": "Reset link is invalid. Please request a new one.",
+		})
+	}
+	if password == "" || len(password) < 8 {
+		return h.renderWithLayout(c, "reset_password.html", "Workforce Loss Tracker - Reset Password", "", map[string]interface{}{
+			"Error": "Password must be at least 8 characters.",
+			"Token": token,
+		})
+	}
+	if confirm != "" && confirm != password {
+		return h.renderWithLayout(c, "reset_password.html", "Workforce Loss Tracker - Reset Password", "", map[string]interface{}{
+			"Error": "Passwords do not match.",
+			"Token": token,
+		})
+	}
+
+	if _, err := h.userService.ResetPassword(token, password); err != nil {
+		message := "Reset link is invalid. Please request a new one."
+		if errors.Is(err, services.ErrResetExpired) {
+			message = "Reset link expired. Please request a new one."
+		}
+		return h.renderWithLayout(c, "reset_password.html", "Workforce Loss Tracker - Reset Password", "", map[string]interface{}{
+			"Error": message,
+			"Token": token,
+		})
+	}
+
+	return c.Redirect(http.StatusSeeOther, "/auth/login?reset=1")
 }
 
 func (h *Handler) AdminDashboard(c echo.Context) error {
@@ -206,24 +561,9 @@ func (h *Handler) AdminDashboard(c echo.Context) error {
 
 	log.Printf("Found %d pending layoffs", len(pending))
 
-	// Render admin dashboard
-	var contentBuf bytes.Buffer
-	data := map[string]interface{}{
+	return h.renderWithLayout(c, "admin.html", "Workforce Loss Tracker - Admin", "", map[string]interface{}{
 		"PendingLayoffs": pending,
-	}
-	err = h.templates.ExecuteTemplate(&contentBuf, "admin.html", data)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-	}
-
-	layoutData := map[string]interface{}{
-		"Title":      "Workforce Loss Tracker - Admin",
-		"ActivePage": "",
-		"Content":    template.HTML(contentBuf.String()),
-		"User":       user,
-	}
-
-	return c.Render(http.StatusOK, "layout.html", layoutData)
+	})
 }
 
 func (h *Handler) ApproveLayoff(c echo.Context) error {
@@ -440,6 +780,7 @@ func (h *Handler) Tracker(c echo.Context) error {
 		"Title":      "Workforce Loss Tracker - Browse Workforce Losses",
 		"ActivePage": "tracker",
 		"Content":    template.HTML(contentBuf.String()),
+		"User":       h.getCurrentUser(c),
 	}
 
 	return c.Render(http.StatusOK, "layout.html", layoutData)
@@ -645,6 +986,7 @@ func (h *Handler) FAQ(c echo.Context) error {
 		"Title":      "Workforce Loss Tracker - Browse Workforce Losses",
 		"ActivePage": "tracker",
 		"Content":    template.HTML(contentBuf.String()),
+		"User":       h.getCurrentUser(c),
 	}
 
 	return c.Render(http.StatusOK, "layout.html", layoutData)
@@ -662,6 +1004,7 @@ func (h *Handler) Privacy(c echo.Context) error {
 		"Title":      "Privacy Policy - Workforce Loss Tracker",
 		"ActivePage": "privacy",
 		"Content":    template.HTML(contentBuf.String()),
+		"User":       h.getCurrentUser(c),
 	}
 
 	return c.Render(http.StatusOK, "layout.html", layoutData)
@@ -679,6 +1022,7 @@ func (h *Handler) Terms(c echo.Context) error {
 		"Title":      "Terms of Service - Workforce Loss Tracker",
 		"ActivePage": "terms",
 		"Content":    template.HTML(contentBuf.String()),
+		"User":       h.getCurrentUser(c),
 	}
 
 	return c.Render(http.StatusOK, "layout.html", layoutData)
@@ -696,6 +1040,7 @@ func (h *Handler) Contact(c echo.Context) error {
 		"Title":      "Contact Us - Workforce Loss Tracker",
 		"ActivePage": "contact",
 		"Content":    template.HTML(contentBuf.String()),
+		"User":       h.getCurrentUser(c),
 	}
 
 	return c.Render(http.StatusOK, "layout.html", layoutData)

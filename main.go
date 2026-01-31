@@ -21,6 +21,7 @@ import (
 	"github.com/robfig/cron/v3"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"golang.org/x/time/rate"
 )
 
 type GoogleUser struct {
@@ -62,6 +63,7 @@ func main() {
 	layoffService := services.NewLayoffService(db)
 	userService := services.NewUserService(db)
 	alertService := services.NewAlertService(userService, "localhost", 25, "alerts@localhost")
+	authMailer := services.NewAuthMailerFromEnv()
 
 	// Start daily data check alerts
 	c := cron.New()
@@ -128,13 +130,18 @@ func main() {
 		"templates/layout.html",
 		"templates/profile.html",
 		"templates/admin.html",
+		"templates/login.html",
+		"templates/register.html",
+		"templates/verify_email.html",
+		"templates/forgot_password.html",
+		"templates/reset_password.html",
 	))
 
 	// Initialize free data service
 	freeDataService := services.NewFreeDataService(db, layoffService)
 
 	// Initialize handlers
-	handler := handlers.NewHandler(layoffService, userService, freeDataService, templates)
+	handler := handlers.NewHandler(layoffService, userService, freeDataService, authMailer, templates)
 
 	// Initialize Echo
 	e := echo.New()
@@ -142,7 +149,19 @@ func main() {
 	// Middleware
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
-	e.Use(session.Middleware(sessions.NewCookieStore([]byte("your-secret-key")))) // Change for production
+	sessionSecret := os.Getenv("SESSION_SECRET")
+	if sessionSecret == "" {
+		log.Printf("SESSION_SECRET not set, using insecure default")
+		sessionSecret = "change-me-in-production"
+	}
+	store := sessions.NewCookieStore([]byte(sessionSecret))
+	store.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   86400 * 7,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	}
+	e.Use(session.Middleware(store))
 	// Static files
 	e.Static("/static", "static")
 
@@ -224,10 +243,27 @@ func main() {
 	// }()
 
 	// Auth routes
+	authRateLimiter := middleware.NewRateLimiterMemoryStore(rate.Limit(5))
+	// Email/password auth
+	e.GET("/auth/register", handler.RegisterForm)
+	e.POST("/auth/register", handler.Register, middleware.RateLimiter(authRateLimiter))
+	e.GET("/auth/login", handler.LoginForm)
+	e.POST("/auth/login", handler.Login, middleware.RateLimiter(authRateLimiter))
+	e.GET("/auth/verify", handler.VerifyEmail)
+	e.POST("/auth/resend-verification", handler.ResendVerification, middleware.RateLimiter(authRateLimiter))
+	e.GET("/auth/forgot", handler.ForgotPasswordForm)
+	e.POST("/auth/forgot", handler.ForgotPassword, middleware.RateLimiter(authRateLimiter))
+	e.GET("/auth/reset", handler.ResetPasswordForm)
+	e.POST("/auth/reset", handler.ResetPassword, middleware.RateLimiter(authRateLimiter))
+
+	// OAuth routes
 	e.GET("/auth/google", func(c echo.Context) error {
 		url := googleOAuthConfig.AuthCodeURL("state", oauth2.AccessTypeOffline)
 		return c.Redirect(http.StatusTemporaryRedirect, url)
 	})
+
+	// Dev debug
+	e.GET("/debug/session", handler.DebugSession)
 	e.GET("/auth/google/callback", func(c echo.Context) error {
 		code := c.QueryParam("code")
 		if code == "" {
@@ -263,6 +299,7 @@ func main() {
 		sess, _ := session.Get("session", c)
 		sess.Values["user_id"] = user.ID
 		sess.Save(c.Request(), c.Response())
+		userService.UpdateLastLogin(user.ID)
 
 		log.Printf("Session set for user ID: %d", user.ID)
 
