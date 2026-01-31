@@ -121,6 +121,7 @@ go build -o layoff-tracker .
    export SERVER_HOST="workforceloss.com"          # default: workforceloss.com
    export SSH_KEY_PATH="$HOME/.ssh/my_key"         # if different key location
    export GITHUB_REPO="sgarver/workforce-loss-tracker" # if different repo
+   export DATABASE_PATH="/var/lib/layoff-tracker/layoff_tracker.db" # service override
    ```
 
 3. **Execute Deployment:**
