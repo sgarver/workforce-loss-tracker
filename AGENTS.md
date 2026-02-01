@@ -112,6 +112,7 @@ For all changes (not just Go files), follow this Software Development Lifecycle:
 - CI runs: Tests, Security scan, Build, Integration tests
 - Monitor staging CI results
 - If staging fails, fix issues and re-push to staging
+- PR bodies should include `Closes #<issue>` for related work
 
 ### 3. Production Deployment
 - **Only after staging passes**: Push/merge to `main` branch
