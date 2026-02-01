@@ -95,36 +95,24 @@ func main() {
 		"add":      func(a, b int) int { return a + b },
 		"subtract": func(a, b int) int { return a - b },
 		"multiply": func(a, b int) int { return a + b },
-		"timeAgo": func(t time.Time) string {
-			duration := time.Since(t)
-			isFuture := duration < 0
-			duration = duration.Abs()
-			days := int(duration.Hours() / 24)
-			suffix := "ago"
-			if isFuture {
-				suffix = "from now"
+		"timeAgo": func(value time.Time) string {
+			if value.IsZero() {
+				return ""
 			}
-			if days == 0 {
-				hours := int(duration.Hours())
-				if hours == 0 {
-					minutes := int(duration.Minutes())
-					if minutes == 0 {
-						return "now"
-					}
-					return fmt.Sprintf("%d minutes %s", minutes, suffix)
-				}
-				return fmt.Sprintf("%d hours %s", hours, suffix)
-			} else if days == 1 {
-				return fmt.Sprintf("1 day %s", suffix)
-			} else if days < 30 {
-				return fmt.Sprintf("%d days %s", days, suffix)
-			} else if days < 365 {
-				months := days / 30
-				return fmt.Sprintf("%d months %s", months, suffix)
-			} else {
-				years := days / 365
-				return fmt.Sprintf("%d years %s", years, suffix)
+			duration := time.Since(value)
+			if duration < time.Minute {
+				return "now"
 			}
+			if duration < time.Hour {
+				return fmt.Sprintf("%dm", int(duration.Minutes()))
+			}
+			if duration < 24*time.Hour {
+				return fmt.Sprintf("%dh", int(duration.Hours()))
+			}
+			if value.Year() == time.Now().Year() {
+				return value.Format("Jan 2")
+			}
+			return value.Format("Jan 2, 2006")
 		},
 	}).ParseFiles(
 		"templates/dashboard.html",
@@ -186,6 +174,8 @@ func main() {
 	e.GET("/tracker", handler.Tracker)
 	e.GET("/layoffs/:id/comments", handler.GetComments)
 	e.POST("/layoffs/:id/comments", handler.CreateComment)
+	e.POST("/comments/:id/like", handler.LikeComment)
+	e.POST("/comments/:id/flag", handler.FlagComment)
 	e.GET("/layoffs/new", handler.NewLayoff)
 	e.GET("/layoffs/:id", handler.LayoffDetail)
 	e.POST("/layoffs", handler.CreateLayoff)
@@ -339,6 +329,8 @@ func main() {
 	e.GET("/admin", handler.AdminDashboard)
 	e.POST("/admin/approve", handler.ApproveLayoff)
 	e.POST("/admin/reject", handler.RejectLayoff)
+	e.POST("/admin/flags/resolve", handler.ResolveCommentFlag)
+	e.POST("/admin/flags/delete", handler.DeleteFlaggedComment)
 	e.GET("/debug/layoffs", handler.DebugLayoffs)
 
 	// Health check

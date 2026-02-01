@@ -363,6 +363,29 @@ func (s *UserService) UpdateLastLogin(userID int) error {
 	return nil
 }
 
+func (s *UserService) GetAdminUsers() ([]*models.User, error) {
+	rows, err := s.db.Query(`SELECT id, provider, provider_id, email, name, avatar_url, is_admin, email_verified, created_at FROM users WHERE is_admin = 1`)
+	if err != nil {
+		return nil, fmt.Errorf("error querying admin users: %w", err)
+	}
+	defer rows.Close()
+
+	var users []*models.User
+	for rows.Next() {
+		var user models.User
+		var avatar sql.NullString
+		if err := rows.Scan(&user.ID, &user.Provider, &user.ProviderID, &user.Email, &user.Name, &avatar, &user.IsAdmin, &user.EmailVerified, &user.CreatedAt); err != nil {
+			return nil, fmt.Errorf("error scanning admin user: %w", err)
+		}
+		if avatar.Valid {
+			user.AvatarURL = avatar.String
+		}
+		users = append(users, &user)
+	}
+
+	return users, nil
+}
+
 type UserAlertPrefs struct {
 	UserID             int  `db:"user_id"`
 	EmailAlertsEnabled bool `db:"email_alerts_enabled"`
