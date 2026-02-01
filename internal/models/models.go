@@ -97,13 +97,39 @@ type FilterParams struct {
 }
 
 type Comment struct {
-	ID          int       `json:"id"`
-	LayoffID    int       `json:"layoff_id"`
-	AuthorName  string    `json:"author_name"`
-	AuthorEmail string    `json:"author_email,omitempty"`
-	Content     string    `json:"content"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID              int       `json:"id"`
+	LayoffID        int       `json:"layoff_id"`
+	LayoffCompany   string    `json:"layoff_company,omitempty"`
+	UserID          int       `json:"user_id,omitempty"`
+	AuthorName      string    `json:"author_name"`
+	AuthorEmail     string    `json:"author_email,omitempty"`
+	AuthorAvatarURL string    `json:"author_avatar_url,omitempty"`
+	Initials        string    `json:"initials,omitempty"`
+	LikeCount       int       `json:"like_count,omitempty"`
+	LikeCount30d    int       `json:"like_count_30d,omitempty"`
+	LikedByUser     bool      `json:"liked_by_user,omitempty"`
+	Content         string    `json:"content"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+}
+
+type CommentFlag struct {
+	ID        int       `json:"id"`
+	CommentID int       `json:"comment_id"`
+	UserID    int       `json:"user_id"`
+	Reason    string    `json:"reason"`
+	Details   string    `json:"details,omitempty"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
+	Comment   *Comment  `json:"comment,omitempty"`
+	Company   string    `json:"company,omitempty"`
+}
+
+type CompanyCommentSummary struct {
+	CompanyID    int      `json:"company_id"`
+	CompanyName  string   `json:"company_name"`
+	CommentCount int      `json:"comment_count"`
+	TopComment   *Comment `json:"top_comment"`
 }
 
 type PaginatedResult struct {

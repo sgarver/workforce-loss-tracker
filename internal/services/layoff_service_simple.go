@@ -413,14 +413,20 @@ func (s *LayoffService) GetIndustries() ([]*models.Industry, error) {
 }
 
 // Comment-related methods
-func (s *LayoffService) GetComments(layoffID int) ([]*models.Comment, error) {
+func (s *LayoffService) GetComments(layoffID int, userID int) ([]*models.Comment, error) {
 	query := `
-		SELECT id, layoff_id, author_name, author_email, content, created_at, updated_at
-		FROM comments
-		WHERE layoff_id = $1
-		ORDER BY created_at ASC`
+		SELECT c.id, c.layoff_id, c.user_id, c.author_name, c.author_email, c.content, c.created_at, c.updated_at,
+		       COALESCE(u.avatar_url, ''),
+		       COUNT(cl.id) AS like_count,
+		       MAX(CASE WHEN cl.user_id = ? THEN 1 ELSE 0 END) AS liked_by_user
+		FROM comments c
+		LEFT JOIN users u ON c.user_id = u.id
+		LEFT JOIN comment_likes cl ON cl.comment_id = c.id
+		WHERE c.layoff_id = ?
+		GROUP BY c.id
+		ORDER BY c.created_at ASC`
 
-	rows, err := s.db.Query(query, layoffID)
+	rows, err := s.db.Query(query, userID, layoffID)
 	if err != nil {
 		return nil, fmt.Errorf("error querying comments: %w", err)
 	}
@@ -430,13 +436,23 @@ func (s *LayoffService) GetComments(layoffID int) ([]*models.Comment, error) {
 	for rows.Next() {
 		var comment models.Comment
 		var email sql.NullString
-		err := rows.Scan(&comment.ID, &comment.LayoffID, &comment.AuthorName, &email, &comment.Content, &comment.CreatedAt, &comment.UpdatedAt)
+		var avatarURL string
+		var userID sql.NullInt64
+		var likedByUser int
+		err := rows.Scan(&comment.ID, &comment.LayoffID, &userID, &comment.AuthorName, &email, &comment.Content, &comment.CreatedAt, &comment.UpdatedAt, &avatarURL, &comment.LikeCount, &likedByUser)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning comment: %w", err)
+		}
+		if userID.Valid {
+			comment.UserID = int(userID.Int64)
 		}
 		if email.Valid {
 			comment.AuthorEmail = email.String
 		}
+		if avatarURL != "" {
+			comment.AuthorAvatarURL = avatarURL
+		}
+		comment.LikedByUser = likedByUser == 1
 		comments = append(comments, &comment)
 	}
 
@@ -445,8 +461,8 @@ func (s *LayoffService) GetComments(layoffID int) ([]*models.Comment, error) {
 
 func (s *LayoffService) CreateComment(comment *models.Comment) error {
 	query := `
-		INSERT INTO comments (layoff_id, author_name, author_email, content)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO comments (layoff_id, user_id, author_name, author_email, content)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, created_at, updated_at`
 
 	var email *string
@@ -454,12 +470,279 @@ func (s *LayoffService) CreateComment(comment *models.Comment) error {
 		email = &comment.AuthorEmail
 	}
 
-	err := s.db.QueryRow(query, comment.LayoffID, comment.AuthorName, email, comment.Content).Scan(&comment.ID, &comment.CreatedAt, &comment.UpdatedAt)
+	var userID *int
+	if comment.UserID > 0 {
+		userID = &comment.UserID
+	}
+
+	err := s.db.QueryRow(query, comment.LayoffID, userID, comment.AuthorName, email, comment.Content).Scan(&comment.ID, &comment.CreatedAt, &comment.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("error creating comment: %w", err)
 	}
 
 	return nil
+}
+
+func (s *LayoffService) GetRecentComments(limit int) ([]*models.Comment, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+
+	query := `
+		SELECT c.id, c.layoff_id, c.user_id, c.author_name, c.author_email, c.content, c.created_at,
+		       COALESCE(u.avatar_url, ''), COALESCE(companies.name, ''),
+		       COUNT(cl.id) AS like_count_30d
+		FROM comments c
+		LEFT JOIN users u ON c.user_id = u.id
+		LEFT JOIN layoffs l ON c.layoff_id = l.id
+		LEFT JOIN companies ON l.company_id = companies.id
+		LEFT JOIN comment_likes cl ON cl.comment_id = c.id AND cl.created_at >= datetime('now', '-30 day')
+		GROUP BY c.id
+		ORDER BY c.created_at DESC
+		LIMIT ?`
+
+	rows, err := s.db.Query(query, limit)
+	if err != nil {
+		return nil, fmt.Errorf("error querying recent comments: %w", err)
+	}
+	defer rows.Close()
+
+	var comments []*models.Comment
+	for rows.Next() {
+		var comment models.Comment
+		var email sql.NullString
+		var avatarURL string
+		var userID sql.NullInt64
+		err := rows.Scan(&comment.ID, &comment.LayoffID, &userID, &comment.AuthorName, &email, &comment.Content, &comment.CreatedAt, &avatarURL, &comment.LayoffCompany, &comment.LikeCount30d)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning recent comment: %w", err)
+		}
+		if userID.Valid {
+			comment.UserID = int(userID.Int64)
+		}
+		if email.Valid {
+			comment.AuthorEmail = email.String
+		}
+		if avatarURL != "" {
+			comment.AuthorAvatarURL = avatarURL
+		}
+		comments = append(comments, &comment)
+	}
+
+	return comments, nil
+}
+
+func (s *LayoffService) ToggleCommentLike(commentID int, userID int) (bool, error) {
+	var existing int
+	err := s.db.QueryRow(`SELECT COUNT(1) FROM comment_likes WHERE comment_id = ? AND user_id = ?`, commentID, userID).Scan(&existing)
+	if err != nil {
+		return false, fmt.Errorf("error checking comment like: %w", err)
+	}
+	if existing > 0 {
+		if _, err := s.db.Exec(`DELETE FROM comment_likes WHERE comment_id = ? AND user_id = ?`, commentID, userID); err != nil {
+			return false, fmt.Errorf("error removing comment like: %w", err)
+		}
+		return false, nil
+	}
+	if _, err := s.db.Exec(`INSERT INTO comment_likes (comment_id, user_id) VALUES (?, ?)`, commentID, userID); err != nil {
+		return false, fmt.Errorf("error adding comment like: %w", err)
+	}
+	return true, nil
+}
+
+func (s *LayoffService) GetCommentSummary(commentID int) (*models.Comment, error) {
+	query := `
+		SELECT c.id, c.layoff_id, c.user_id, c.author_name, c.author_email, c.content, c.created_at,
+		       COALESCE(companies.name, '')
+		FROM comments c
+		LEFT JOIN layoffs l ON c.layoff_id = l.id
+		LEFT JOIN companies ON l.company_id = companies.id
+		WHERE c.id = ?`
+	var comment models.Comment
+	var email sql.NullString
+	var userID sql.NullInt64
+	if err := s.db.QueryRow(query, commentID).Scan(&comment.ID, &comment.LayoffID, &userID, &comment.AuthorName, &email, &comment.Content, &comment.CreatedAt, &comment.LayoffCompany); err != nil {
+		return nil, fmt.Errorf("error getting comment summary: %w", err)
+	}
+	if userID.Valid {
+		comment.UserID = int(userID.Int64)
+	}
+	if email.Valid {
+		comment.AuthorEmail = email.String
+	}
+	return &comment, nil
+}
+
+func (s *LayoffService) CreateCommentFlag(flag *models.CommentFlag) error {
+	_, err := s.db.Exec(`INSERT INTO comment_flags (comment_id, user_id, reason, details, status) VALUES (?, ?, ?, ?, 'pending')`,
+		flag.CommentID, flag.UserID, flag.Reason, flag.Details)
+	if err != nil {
+		return fmt.Errorf("error creating comment flag: %w", err)
+	}
+	return nil
+}
+
+func (s *LayoffService) GetFlaggedComments() ([]*models.CommentFlag, error) {
+	query := `
+		SELECT cf.id, cf.comment_id, cf.user_id, cf.reason, cf.details, cf.status, cf.created_at,
+		       c.layoff_id, c.author_name, c.author_email, c.content, c.created_at,
+		       COALESCE(companies.name, '')
+		FROM comment_flags cf
+		JOIN comments c ON cf.comment_id = c.id
+		LEFT JOIN layoffs l ON c.layoff_id = l.id
+		LEFT JOIN companies ON l.company_id = companies.id
+		WHERE cf.status = 'pending'
+		ORDER BY cf.created_at DESC`
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("error querying comment flags: %w", err)
+	}
+	defer rows.Close()
+
+	var flags []*models.CommentFlag
+	for rows.Next() {
+		var flag models.CommentFlag
+		var details sql.NullString
+		var comment models.Comment
+		var email sql.NullString
+		var companyName string
+		if err := rows.Scan(
+			&flag.ID,
+			&flag.CommentID,
+			&flag.UserID,
+			&flag.Reason,
+			&details,
+			&flag.Status,
+			&flag.CreatedAt,
+			&comment.LayoffID,
+			&comment.AuthorName,
+			&email,
+			&comment.Content,
+			&comment.CreatedAt,
+			&companyName,
+		); err != nil {
+			return nil, fmt.Errorf("error scanning comment flag: %w", err)
+		}
+		if details.Valid {
+			flag.Details = details.String
+		}
+		if email.Valid {
+			comment.AuthorEmail = email.String
+		}
+		flag.Comment = &comment
+		flag.Company = companyName
+		flags = append(flags, &flag)
+	}
+
+	return flags, nil
+}
+
+func (s *LayoffService) ResolveCommentFlag(flagID int) error {
+	_, err := s.db.Exec(`UPDATE comment_flags SET status = 'resolved' WHERE id = ?`, flagID)
+	if err != nil {
+		return fmt.Errorf("error resolving comment flag: %w", err)
+	}
+	return nil
+}
+
+func (s *LayoffService) DeleteComment(commentID int) error {
+	_, err := s.db.Exec(`DELETE FROM comments WHERE id = ?`, commentID)
+	if err != nil {
+		return fmt.Errorf("error deleting comment: %w", err)
+	}
+	return nil
+}
+
+func (s *LayoffService) GetTopActiveCompanies(limit int) ([]*models.CompanyCommentSummary, error) {
+	if limit <= 0 {
+		limit = 5
+	}
+	query := `
+		WITH recent_comments AS (
+			SELECT c.id, c.layoff_id, c.user_id, c.author_name, c.author_email, c.content, c.created_at,
+			       l.company_id
+			FROM comments c
+			JOIN layoffs l ON c.layoff_id = l.id
+			WHERE c.created_at >= datetime('now', '-30 day')
+		),
+		company_counts AS (
+			SELECT company_id, COUNT(*) AS comment_count
+			FROM recent_comments
+			GROUP BY company_id
+			ORDER BY comment_count DESC
+			LIMIT ?
+		),
+		likes_30 AS (
+			SELECT comment_id, COUNT(*) AS like_count
+			FROM comment_likes
+			WHERE created_at >= datetime('now', '-30 day')
+			GROUP BY comment_id
+		),
+		ranked AS (
+			SELECT cc.company_id, cc.comment_count, companies.name AS company_name,
+			       rc.id AS comment_id, rc.layoff_id, rc.user_id, rc.author_name, rc.author_email, rc.content, rc.created_at,
+			       COALESCE(u.avatar_url, '') AS avatar_url,
+			       COALESCE(likes_30.like_count, 0) AS like_count,
+			       ROW_NUMBER() OVER (
+				PARTITION BY cc.company_id
+				ORDER BY COALESCE(likes_30.like_count, 0) DESC, rc.created_at DESC
+			) AS rn
+			FROM company_counts cc
+			JOIN companies ON companies.id = cc.company_id
+			JOIN recent_comments rc ON rc.company_id = cc.company_id
+			LEFT JOIN users u ON rc.user_id = u.id
+			LEFT JOIN likes_30 ON likes_30.comment_id = rc.id
+		)
+		SELECT company_id, company_name, comment_count,
+		       comment_id, layoff_id, user_id, author_name, author_email, content, created_at, avatar_url, like_count
+		FROM ranked
+		WHERE rn = 1
+		ORDER BY comment_count DESC, like_count DESC, created_at DESC`
+
+	rows, err := s.db.Query(query, limit)
+	if err != nil {
+		return nil, fmt.Errorf("error querying top active companies: %w", err)
+	}
+	defer rows.Close()
+
+	var results []*models.CompanyCommentSummary
+	for rows.Next() {
+		var summary models.CompanyCommentSummary
+		var comment models.Comment
+		var email sql.NullString
+		var avatarURL string
+		var userID sql.NullInt64
+		if err := rows.Scan(
+			&summary.CompanyID,
+			&summary.CompanyName,
+			&summary.CommentCount,
+			&comment.ID,
+			&comment.LayoffID,
+			&userID,
+			&comment.AuthorName,
+			&email,
+			&comment.Content,
+			&comment.CreatedAt,
+			&avatarURL,
+			&comment.LikeCount30d,
+		); err != nil {
+			return nil, fmt.Errorf("error scanning top company: %w", err)
+		}
+		if userID.Valid {
+			comment.UserID = int(userID.Int64)
+		}
+		if email.Valid {
+			comment.AuthorEmail = email.String
+		}
+		if avatarURL != "" {
+			comment.AuthorAvatarURL = avatarURL
+		}
+		comment.LayoffCompany = summary.CompanyName
+		summary.TopComment = &comment
+		results = append(results, &summary)
+	}
+
+	return results, nil
 }
 
 func (s *LayoffService) GetStats() (*models.Stats, error) {
@@ -983,7 +1266,7 @@ func (s *LayoffService) RejectLayoff(id int) error {
 func (s *LayoffService) GetPendingLayoffs() ([]*models.Layoff, error) {
 	rows, err := s.db.Query(`
 		SELECT l.id, l.company_id, l.employees_affected, l.layoff_date, l.source_type, l.notes, l.status, l.created_at,
-		       c.name, c.canonical_name, c.website, c.employee_count, c.industry_id
+		       c.name, c.canonical_name, c.website, c.employee_count
 		FROM layoffs l
 		JOIN companies c ON l.company_id = c.id
 		WHERE l.status = 'pending'
@@ -999,9 +1282,10 @@ func (s *LayoffService) GetPendingLayoffs() ([]*models.Layoff, error) {
 		layoff := &models.Layoff{Company: &models.Company{}}
 		var companyName sql.NullString
 		var canonicalName sql.NullString
+		var companyWebsite sql.NullString
 		err := rows.Scan(
 			&layoff.ID, &layoff.Company.ID, &layoff.EmployeesAffected, &layoff.LayoffDate, &layoff.SourceType, &layoff.Notes, &layoff.Status, &layoff.CreatedAt,
-			&companyName, &canonicalName, &layoff.Company.Website, &layoff.Company.EmployeeCount, &layoff.Company.IndustryID,
+			&companyName, &canonicalName, &companyWebsite, &layoff.Company.EmployeeCount,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning layoff: %w", err)
@@ -1011,6 +1295,9 @@ func (s *LayoffService) GetPendingLayoffs() ([]*models.Layoff, error) {
 		}
 		if canonicalName.Valid && canonicalName.String != "" {
 			layoff.Company.Name = canonicalName.String // Use canonical name for display
+		}
+		if companyWebsite.Valid {
+			layoff.Company.Website = companyWebsite.String
 		}
 		layoffs = append(layoffs, layoff)
 	}

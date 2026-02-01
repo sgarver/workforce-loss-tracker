@@ -186,6 +186,8 @@ func main() {
 	e.GET("/tracker", handler.Tracker)
 	e.GET("/layoffs/:id/comments", handler.GetComments)
 	e.POST("/layoffs/:id/comments", handler.CreateComment)
+	e.POST("/comments/:id/like", handler.LikeComment)
+	e.POST("/comments/:id/flag", handler.FlagComment)
 	e.GET("/layoffs/new", handler.NewLayoff)
 	e.GET("/layoffs/:id", handler.LayoffDetail)
 	e.POST("/layoffs", handler.CreateLayoff)
@@ -339,6 +341,8 @@ func main() {
 	e.GET("/admin", handler.AdminDashboard)
 	e.POST("/admin/approve", handler.ApproveLayoff)
 	e.POST("/admin/reject", handler.RejectLayoff)
+	e.POST("/admin/flags/resolve", handler.ResolveCommentFlag)
+	e.POST("/admin/flags/delete", handler.DeleteFlaggedComment)
 	e.GET("/debug/layoffs", handler.DebugLayoffs)
 
 	// Health check

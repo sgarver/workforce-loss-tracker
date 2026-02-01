@@ -37,6 +37,7 @@ Testing
 Social features
  - [x] add membership system with federation from common providers
  - [x] add commenting system
+ - [x] show recent comments on home page (limit 10, include avatars, block disallowed users)
 
 Authentication features
  - [ ] add traditional email/password login system
@@ -56,4 +57,4 @@ Getting Production Ready
  - [ ] improve industry detection to 80-90% (requires domain for Clearbit API signup)
  - [x] rebrand to "Workforce Loss Tracker" to match workforceloss.com domain
 
-Last updated: 2026-01-31 15:05 PST (enable main PR CI checks)
+Last updated: 2026-01-31 18:22 PST (remove recent comments section from home)
