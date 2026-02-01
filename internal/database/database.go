@@ -34,6 +34,14 @@ func NewDB(dataSourceName string) (*DB, error) {
 		return nil, fmt.Errorf("error enabling WAL mode: %w", err)
 	}
 
+	// Reduce busy errors and fsync overhead
+	if _, err = db.Exec("PRAGMA busy_timeout = 5000"); err != nil {
+		log.Printf("error setting busy_timeout: %v", err)
+	}
+	if _, err = db.Exec("PRAGMA synchronous = NORMAL"); err != nil {
+		log.Printf("error setting synchronous=NORMAL: %v", err)
+	}
+
 	return &DB{db}, nil
 }
 
