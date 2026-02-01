@@ -136,6 +136,10 @@ For all changes (not just Go files), follow this Software Development Lifecycle:
 - **Test thoroughly** at each stage
 - **Document all processes** in `DEPLOY.md`
 
+**No direct main changes**
+- All changes must flow dev → `staging` → `main`
+- Do not open PRs from feature branches directly to `main`
+
 ## Final Step
 
 - After completing changes, delete merged feature branches locally and on origin.
