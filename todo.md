@@ -57,4 +57,4 @@ Getting Production Ready
  - [ ] improve industry detection to 80-90% (requires domain for Clearbit API signup)
  - [x] rebrand to "Workforce Loss Tracker" to match workforceloss.com domain
 
-Last updated: 2026-01-31 18:22 PST (remove recent comments section from home)
+Last updated: 2026-01-31 19:00 PST (use X-style timeAgo on home comments)

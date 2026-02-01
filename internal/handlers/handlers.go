@@ -95,6 +95,26 @@ func truncateText(value string, limit int) string {
 	return value[:limit] + "..."
 }
 
+func timeAgo(value time.Time) string {
+	if value.IsZero() {
+		return ""
+	}
+	seconds := time.Since(value)
+	if seconds < time.Minute {
+		return "now"
+	}
+	if seconds < time.Hour {
+		return fmt.Sprintf("%dm", int(seconds.Minutes()))
+	}
+	if seconds < 24*time.Hour {
+		return fmt.Sprintf("%dh", int(seconds.Hours()))
+	}
+	if value.Year() == time.Now().Year() {
+		return value.Format("Jan 2")
+	}
+	return value.Format("Jan 2, 2006")
+}
+
 // getIndustryColor returns a unique color scheme for industry badges
 func getIndustryColor(industry string) (bgClass, textClass, hoverClass string) {
 	// Comprehensive color mapping for major industries - vibrant primary colors

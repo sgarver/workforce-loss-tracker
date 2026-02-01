@@ -159,10 +159,19 @@ function displayComments(comments) {
             <p class="text-gray-700 dark:text-gray-300 whitespace-pre-line">${comment.content}</p>
             <div class="mt-3 flex items-center justify-between text-sm">
                 <div class="flex items-center space-x-3">
-                    <button class="like-button ${comment.liked_by_user ? 'text-primary-600' : 'text-gray-500'}" data-like-id="${comment.id}">
-                        👍 <span class="like-count">${comment.like_count || 0}</span>
+                    <button class="like-button inline-flex items-center space-x-1 ${comment.liked_by_user ? 'text-red-500' : 'text-gray-500'}" data-like-id="${comment.id}" aria-label="Like comment">
+                        <svg class="h-4 w-4 ${comment.liked_by_user ? 'fill-red-500 stroke-red-500' : 'fill-transparent stroke-gray-400'}" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s-6.2-4.35-9.33-7.5C.5 11.27.5 7.6 3.17 5.5 5.5 3.7 8.7 4.2 12 7c3.3-2.8 6.5-3.3 8.83-1.5 2.67 2.1 2.67 5.77.5 8-3.13 3.15-9.33 7.5-9.33 7.5z" />
+                        </svg>
+                        <span class="like-count">${comment.like_count || 0}</span>
                     </button>
-                    <button class="flag-button text-gray-500" data-flag-id="${comment.id}">Flag</button>
+                    <button class="flag-button inline-flex items-center ${comment.pending_flag ? 'text-amber-500' : 'text-gray-500 hover:text-primary-600'}" data-flag-id="${comment.id}" aria-label="Flag comment">
+                        <svg class="h-4 w-4 stroke-current ${comment.pending_flag ? 'fill-amber-500' : 'fill-transparent'}" viewBox="0 0 24 24" fill="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M5 3v18" />
+                            <path d="M5 4h9l-1 4h6l-1 4H5" />
+                        </svg>
+                        <span class="sr-only">Flag</span>
+                    </button>
                 </div>
                 ${!isVerified && canInteract ? '<span class="text-xs text-gray-500">Verify email to interact</span>' : ''}
             </div>
@@ -240,6 +249,7 @@ function initFlagModal() {
             if (response.ok) {
                 alert('Comment flagged for review.');
                 closeFlagModal();
+                loadComments();
             } else {
                 alert('Unable to flag comment.');
             }

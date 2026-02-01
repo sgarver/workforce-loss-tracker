@@ -57,7 +57,15 @@
                             {{end}}
                             <div>
                                 <div class="text-sm font-semibold text-gray-900 dark:text-white">{{.TopComment.AuthorName}}</div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400">{{.TopComment.CreatedAt.Format "Jan 2"}} · {{.TopComment.LikeCount30d}} likes</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">
+                                    {{timeAgo .TopComment.CreatedAt}}
+                                    <span class="inline-flex items-center space-x-1 ml-2 text-red-500">
+                                        <svg class="h-3.5 w-3.5 fill-red-500 stroke-red-500" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="currentColor" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s-6.2-4.35-9.33-7.5C.5 11.27.5 7.6 3.17 5.5 5.5 3.7 8.7 4.2 12 7c3.3-2.8 6.5-3.3 8.83-1.5 2.67 2.1 2.67 5.77.5 8-3.13 3.15-9.33 7.5-9.33 7.5z" />
+                                        </svg>
+                                        <span>{{.TopComment.LikeCount30d}}</span>
+                                    </span>
+                                </div>
                             </div>
                         </div>
                         <a href="/layoffs/{{.TopComment.LayoffID}}" class="text-primary-600 hover:text-primary-700 text-xs font-medium">Open</a>

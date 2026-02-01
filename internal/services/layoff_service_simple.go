@@ -418,10 +418,12 @@ func (s *LayoffService) GetComments(layoffID int, userID int) ([]*models.Comment
 		SELECT c.id, c.layoff_id, c.user_id, c.author_name, c.author_email, c.content, c.created_at, c.updated_at,
 		       COALESCE(u.avatar_url, ''),
 		       COUNT(cl.id) AS like_count,
-		       MAX(CASE WHEN cl.user_id = ? THEN 1 ELSE 0 END) AS liked_by_user
+		       MAX(CASE WHEN cl.user_id = ? THEN 1 ELSE 0 END) AS liked_by_user,
+		       MAX(CASE WHEN cf.id IS NOT NULL THEN 1 ELSE 0 END) AS pending_flag
 		FROM comments c
 		LEFT JOIN users u ON c.user_id = u.id
 		LEFT JOIN comment_likes cl ON cl.comment_id = c.id
+		LEFT JOIN comment_flags cf ON cf.comment_id = c.id AND cf.status = 'pending'
 		WHERE c.layoff_id = ?
 		GROUP BY c.id
 		ORDER BY c.created_at ASC`
@@ -439,7 +441,8 @@ func (s *LayoffService) GetComments(layoffID int, userID int) ([]*models.Comment
 		var avatarURL string
 		var userID sql.NullInt64
 		var likedByUser int
-		err := rows.Scan(&comment.ID, &comment.LayoffID, &userID, &comment.AuthorName, &email, &comment.Content, &comment.CreatedAt, &comment.UpdatedAt, &avatarURL, &comment.LikeCount, &likedByUser)
+		var pendingFlag int
+		err := rows.Scan(&comment.ID, &comment.LayoffID, &userID, &comment.AuthorName, &email, &comment.Content, &comment.CreatedAt, &comment.UpdatedAt, &avatarURL, &comment.LikeCount, &likedByUser, &pendingFlag)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning comment: %w", err)
 		}
@@ -453,6 +456,7 @@ func (s *LayoffService) GetComments(layoffID int, userID int) ([]*models.Comment
 			comment.AuthorAvatarURL = avatarURL
 		}
 		comment.LikedByUser = likedByUser == 1
+		comment.PendingFlag = pendingFlag == 1
 		comments = append(comments, &comment)
 	}
 

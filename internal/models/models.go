@@ -108,6 +108,7 @@ type Comment struct {
 	LikeCount       int       `json:"like_count,omitempty"`
 	LikeCount30d    int       `json:"like_count_30d,omitempty"`
 	LikedByUser     bool      `json:"liked_by_user,omitempty"`
+	PendingFlag     bool      `json:"pending_flag,omitempty"`
 	Content         string    `json:"content"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
