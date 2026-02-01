@@ -24,6 +24,16 @@ A web application for tracking workforce reductions across industries using data
 
 See [DEPLOY.md](DEPLOY.md) for deployment and rollback procedures.
 
+## Release
+
+For automated releases, use:
+
+```bash
+./scripts/release.sh --issues 88,89 --tag v0.1.1
+```
+
+This waits for CI, merges `staging` → `main`, deploys, tags the release, and closes the listed issues.
+
 ## Data Sources
 
 ### Current Data Sources
