@@ -2,9 +2,10 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: $0 --issues <comma-separated> --tag <version> [--staging-branch staging] [--main-branch main]"
+  echo "Usage: $0 --issues <comma-separated> --tag <version> [--source-branch <branch>] [--staging-branch staging] [--main-branch main]"
   echo "Examples:"
   echo "  $0 --issues 88,89 --tag v0.1.1"
+  echo "  $0 --issues 112 --tag v0.1.1 --source-branch feature/release-docs"
   echo "  $0 --issues 88,89 --tag v0.2.0 --staging-branch staging --main-branch main"
 }
 
@@ -16,6 +17,7 @@ staging_workflow="staging-ci.yml"
 main_workflow="production-deploy.yml"
 project_owner="sgarver"
 project_number="1"
+source_branch=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -29,6 +31,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --staging-branch)
       staging_branch="$2"
+      shift 2
+      ;;
+    --source-branch)
+      source_branch="$2"
       shift 2
       ;;
     --main-branch)
@@ -57,20 +63,37 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 
+if [[ -z "$source_branch" ]]; then
+  source_branch=$(git rev-parse --abbrev-ref HEAD)
+fi
+
 echo "Release starting for tag $tag"
 echo "Issues: $issues"
+echo "Source branch: $source_branch"
+
+git fetch origin
+git checkout "$staging_branch"
+git merge --ff-only "origin/$staging_branch" || true
+git merge --ff-only "$source_branch"
+git push origin "$staging_branch"
 
 scripts/wait-ci.sh "$staging_workflow" "$staging_branch" 1200
 
+git checkout "$main_branch"
+git merge --ff-only "origin/$main_branch" || true
+
 pr_url=$(gh pr list --base "$main_branch" --head "$staging_branch" --json url -q '.[0].url' || true)
 if [[ -z "$pr_url" ]]; then
-  pr_url=$(gh pr create --base "$main_branch" --head "$staging_branch" --title "Release $tag" --body "Closes #${issues//,/ #}" )
+  pr_url=$(gh pr create --base "$main_branch" --head "$staging_branch" --title "Release $tag" --body "Closes #${issues//,/ #}")
 fi
 echo "Using PR: $pr_url"
 
-scripts/wait-ci.sh "$main_workflow" "$main_branch" 1200
+echo "Waiting for PR checks..."
+timeout 1200 bash -lc 'while true; do json=$(gh pr view "'$pr_url'" --json statusCheckRollup); statuses=$(echo "$json" | jq -r "[.statusCheckRollup[].status] | unique | join(\",\")"); conclusions=$(echo "$json" | jq -r "[.statusCheckRollup[].conclusion] | unique | join(\",\")"); echo "status=$statuses conclusion=$conclusions"; if echo "$statuses" | grep -q "IN_PROGRESS"; then sleep 20; continue; fi; if echo "$conclusions" | grep -qi "failure\|cancelled"; then exit 2; fi; exit 0; done'
 
 gh pr merge "$pr_url" --squash
+
+scripts/wait-ci.sh "$main_workflow" "$main_branch" 1200
 
 ./deploy-local.sh
 

@@ -115,7 +115,6 @@ For all changes (not just Go files), follow this Software Development Lifecycle:
 - CI runs: Tests, Security scan, Build, Integration tests
 - Monitor staging CI results
 - If staging fails, fix issues and re-push to staging
-- PR bodies should include `Closes #<issue>` for related work
 
 ### 3. Production Deployment
 - **Only after staging passes**: Push/merge to `main` branch
@@ -124,6 +123,10 @@ For all changes (not just Go files), follow this Software Development Lifecycle:
 - Verify production functionality
 - Close or mark related issues as Done in the project board
 - Tag the release with the milestone version (e.g., `v0.8.0`) and publish release notes
+
+**Single-approval release**
+- After local verification, a single approval can trigger `scripts/release.sh`
+- The script pushes dev → `staging`, opens a `staging` → `main` PR, runs CI gates, deploys, tags, and closes issues
 
 ### 4. Rollback (If Needed)
 - If production issues arise, use documented rollback steps in `DEPLOY.md`
