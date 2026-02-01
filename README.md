@@ -3,22 +3,19 @@
 [![Staging CI](https://github.com/sgarver/workforce-loss-tracker/actions/workflows/staging-ci.yml/badge.svg?branch=staging)](https://github.com/sgarver/workforce-loss-tracker/actions/workflows/staging-ci.yml)
 [![CI](https://github.com/sgarver/workforce-loss-tracker/actions/workflows/production-deploy.yml/badge.svg?branch=main)](https://github.com/sgarver/workforce-loss-tracker/actions/workflows/production-deploy.yml)
 
-A web application for tracking workforce reductions across industries using data from public WARN Act filings. Features include automated data import, web dashboard, filtering and search, layoff detail pages, CSV export, and notification system.
+A web application for tracking workforce reductions across industries using data from public WARN Act filings. Features include automated data import, web dashboard with trends, search and filters, user authentication, commenting with moderation, and admin review tools.
 
 ## Features
 
-- **Automated Data Import**: Nightly import of WARN Act filings from all US states
-- **Web Dashboard**: Overview with statistics, trends, and industry breakdowns
-- **Workforce Loss Tracker**: Browse workforce losses with advanced filtering (industry, date range, employee count, search)
-- **Workforce Loss Management**: View detailed workforce loss information, add new workforce loss reports
-- **Industry Overview**: Statistics and breakdowns by industry
-
-## Deployment
-
-See [DEPLOY.md](DEPLOY.md) for deployment and rollback procedures.
-- **CSV Export**: Export filtered layoff data to CSV
-- **API**: RESTful API for statistics and layoff data
-- **Notifications**: Email notifications for import status and failures
+- **Automated Data Import**: Nightly WARN Act imports with audit history
+- **Web Dashboard**: Statistics, trends, and industry breakdowns
+- **Tracker & Search**: Filter by industry, date, employee count, and keywords
+- **Auth**: Email/password plus Google OAuth (verified users required for comments)
+- **Community**: Comments with likes and moderation flags
+- **Admin Review**: Approve pending layoffs and review flagged comments
+- **Homepage Highlights**: Most active companies by recent comment activity
+- **CSV Export + API**: Export and REST endpoints for stats and layoffs
+- **Notifications**: Email alerts for imports and issues
 
 ## Data Sources
 
@@ -44,6 +41,20 @@ See [DEPLOY.md](DEPLOY.md) for deployment and rollback procedures.
 - `GET /api/industries` - Available industries
 - `GET /api/sponsored` - Sponsored listings
 - `GET /api/current-layoffs` - Recent layoffs (last 30 days)
+
+### Comments
+- `GET /layoffs/:id/comments` - List comments for a layoff
+- `POST /layoffs/:id/comments` - Add a comment (verified users only)
+- `POST /comments/:id/like` - Toggle like on a comment (verified users only)
+- `POST /comments/:id/flag` - Flag a comment for moderation (verified users only)
+
+### Authentication
+- `GET /auth/login` / `POST /auth/login`
+- `GET /auth/register` / `POST /auth/register`
+- `GET /auth/verify`
+- `GET /auth/forgot` / `POST /auth/forgot`
+- `GET /auth/reset` / `POST /auth/reset`
+- `GET /auth/google` (OAuth)
 
 ### Workforce Loss Management
 - `GET /layoffs/:id` - Get detailed workforce loss information
@@ -71,6 +82,23 @@ go run main.go
 ```
 
 The server will start on port 8080 (configurable via PORT environment variable). Static files are served from the `static/` directory, and HTML templates from `templates/`.
+
+### Environment Variables
+
+```bash
+PORT=8080
+GO_ENV=development
+DATABASE_PATH=/tmp/layoff_tracker.db
+SESSION_SECRET=change-me
+BASE_URL=http://localhost:8080
+
+# SMTP (verification + reset + admin flag notifications)
+SMTP_HOST=localhost
+SMTP_PORT=25
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=alerts@localhost
+```
 
 ### Systemd Service for Development (Recommended)
 
@@ -129,6 +157,11 @@ Uses SQLite (`layoff_tracker.db`) with automatic migrations. Tables include:
 - `layoffs` - Layoff records with employee counts, dates, and sources
 - `sponsored_listings` - Promotional listings for companies
 - `import_history` - Tracking of data import operations
+- `users` - User accounts (email/password + OAuth)
+- `comments` - User comments on layoffs
+- `comment_likes` - Comment likes
+- `comment_flags` - Comment moderation flags
+- `session_logs` - Login/logout/admin audit logs
 
 ## Importing Data
 
@@ -141,4 +174,7 @@ curl -X POST http://localhost:8080/import/warn
 This will download and process the latest WARN Act filings from all US states.
 
 For production deployment, configure email notifications for import status updates.
-# Test CI/CD pipeline
+
+## Deployment
+
+See [DEPLOY.md](DEPLOY.md) for deployment and rollback procedures.

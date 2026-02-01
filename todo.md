@@ -39,12 +39,13 @@ Social features
  - [x] add commenting system
 
 Authentication features
- - [ ] add traditional email/password login system
-   - [ ] user registration with email verification
-   - [ ] login/logout forms
-   - [ ] forgot password/reset functionality
-   - [ ] password hashing and security
-   - [ ] session management updates
+ - [x] add traditional email/password login system
+   - [x] user registration with email verification
+   - [x] login/logout forms
+   - [x] forgot password/reset functionality
+   - [x] password hashing and security
+   - [x] session management updates
+ - [ ] add additional SSO providers beyond Google (GitHub, Microsoft, LinkedIn)
 
 Getting Production Ready
 - [x] add admin functionality to review and approve submissions
@@ -56,4 +57,4 @@ Getting Production Ready
  - [ ] improve industry detection to 80-90% (requires domain for Clearbit API signup)
  - [x] rebrand to "Workforce Loss Tracker" to match workforceloss.com domain
 
-Last updated: 2026-01-31 15:05 PST (enable main PR CI checks)
+Last updated: 2026-01-31 19:46 PST (update README with current features)
