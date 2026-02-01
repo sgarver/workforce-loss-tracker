@@ -44,12 +44,14 @@ For ruleset validation, use a doc-only change on a dev branch.
 - Run `./deploy-local.sh` from main branch
 - Monitor deployment logs for issues
 - Verify health checks pass
+- Tag the release with the milestone version (e.g., `v0.8.0`) and publish release notes
 
 #### **5. Post-Deployment Verification**
 - Check production site loads correctly
 - Verify all features work as expected
 - Monitor error logs for 24 hours
 - Be ready to rollback if issues appear
+- Close or mark related GitHub issues as Done
 
 ### Local Testing Requirements
 
