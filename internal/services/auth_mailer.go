@@ -45,6 +45,10 @@ func (m *AuthMailer) Configured() bool {
 	return m.smtpHost != "" && m.fromEmail != ""
 }
 
+func (m *AuthMailer) BaseURL() string {
+	return m.baseURL
+}
+
 func (m *AuthMailer) SendVerificationEmail(to, name, token string) error {
 	verifyLink := fmt.Sprintf("%s/auth/verify?token=%s", m.baseURL, token)
 	subject := "Verify your Workforce Loss Tracker account"
@@ -59,6 +63,14 @@ func (m *AuthMailer) SendResetEmail(to, name, token string) error {
 	subject := "Reset your Workforce Loss Tracker password"
 	textBody := fmt.Sprintf("Hi %s,\n\nReset your password using the link below:\n%s\n\nIf you did not request a reset, you can ignore this email.\n", safeName(name, to), resetLink)
 	htmlBody := fmt.Sprintf("<p>Hi %s,</p><p>Reset your password using the link below:</p><p><a href=\"%s\">Reset password</a></p><p>If you did not request a reset, you can ignore this email.</p>", safeName(name, to), resetLink)
+
+	return m.sendEmail(to, subject, textBody, htmlBody)
+}
+
+func (m *AuthMailer) SendFlaggedCommentEmail(to, commentAuthor, companyName, reason, details, commentLink string) error {
+	subject := "Comment flagged for review"
+	textBody := fmt.Sprintf("A comment was flagged for review.\n\nAuthor: %s\nCompany: %s\nReason: %s\nDetails: %s\nLink: %s\n", commentAuthor, companyName, reason, details, commentLink)
+	htmlBody := fmt.Sprintf("<p>A comment was flagged for review.</p><ul><li><strong>Author:</strong> %s</li><li><strong>Company:</strong> %s</li><li><strong>Reason:</strong> %s</li><li><strong>Details:</strong> %s</li><li><strong>Link:</strong> <a href=\"%s\">View comment</a></li></ul>", commentAuthor, companyName, reason, details, commentLink)
 
 	return m.sendEmail(to, subject, textBody, htmlBody)
 }
