@@ -41,6 +41,10 @@ For ruleset validation, use a doc-only change on a dev branch.
 - Merge `staging` → `main` only when tests pass and review is complete
  - PR bodies should include `Closes #<issue>` for related work
 
+**No direct main changes**
+- All changes must flow dev → `staging` → `main`
+- Do not open PRs from feature branches directly to `main`
+
 #### **4. Production Deployment**
 - Run `./deploy-local.sh` from main branch
 - Monitor deployment logs for issues
