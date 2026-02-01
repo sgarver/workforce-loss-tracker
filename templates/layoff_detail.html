@@ -50,24 +50,8 @@
         <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
             <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Add a Comment</h3>
             {{if .User}}
+            {{if .User.EmailVerified}}
             <form id="comment-form" class="space-y-4">
-                {{if not .User}}
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="author_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name *</label>
-                        <input type="text" id="author_name" name="author_name" required
-                               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white">
-                    </div>
-                    <div>
-                        <label for="author_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email (optional)</label>
-                        <input type="email" id="author_email" name="author_email"
-                               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white">
-                    </div>
-                </div>
-                {{else}}
-                <input type="hidden" name="author_name" value="{{.User.Name}}">
-                <input type="hidden" name="author_email" value="{{.User.Email}}">
-                {{end}}
                 <div>
                     <label for="content" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Comment *</label>
                     <textarea id="content" name="content" rows="4" required
@@ -78,6 +62,12 @@
                     Post Comment
                 </button>
             </form>
+            {{else}}
+            <p class="text-gray-600 dark:text-gray-400">
+                Please verify your email to add comments.
+                <a href="/auth/verify" class="text-primary-600 hover:text-primary-700">Verify email</a>
+            </p>
+            {{end}}
             {{else}}
             <p class="text-gray-600 dark:text-gray-400">
                 <a href="/auth/login" class="text-primary-600 hover:text-primary-700">Sign in</a> to add comments.
@@ -95,6 +85,44 @@
 </div>
 
 <script>
+const canInteract = {{if .User}}true{{else}}false{{end}};
+const isVerified = {{if .User}}{{if .User.EmailVerified}}true{{else}}false{{end}}{{else}}false{{end}};
+let activeFlagCommentId = null;
+
+function openFlagModal(commentID) {
+    activeFlagCommentId = commentID;
+    const modal = document.getElementById('flag-modal');
+    if (!modal) {
+        return;
+    }
+    modal.classList.remove('hidden');
+    document.getElementById('flag-details').value = '';
+    document.getElementById('flag-details').disabled = true;
+    document.querySelectorAll('input[name="flag_reason"]').forEach(input => {
+        input.checked = false;
+    });
+}
+
+function closeFlagModal() {
+    const modal = document.getElementById('flag-modal');
+    if (!modal) {
+        return;
+    }
+    modal.classList.add('hidden');
+}
+
+function onFlagReasonChange() {
+    const selected = document.querySelector('input[name="flag_reason"]:checked');
+    const detailsInput = document.getElementById('flag-details');
+    if (!selected || !detailsInput) {
+        return;
+    }
+    detailsInput.disabled = selected.value !== 'Other';
+    if (detailsInput.disabled) {
+        detailsInput.value = '';
+    }
+}
+
 // Load comments when page loads
 async function loadComments() {
     try {
@@ -118,52 +146,203 @@ function displayComments(comments) {
     container.innerHTML = comments.map(comment => `
         <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
             <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center space-x-2">
-                    <span class="font-medium text-gray-900 dark:text-white">${comment.author_name}</span>
-                    ${comment.author_email ? `<span class="text-sm text-gray-500 dark:text-gray-400">(${comment.author_email})</span>` : ''}
+                <div class="flex items-center space-x-3">
+                    ${comment.author_avatar_url ? `<img src=\"${comment.author_avatar_url}\" alt=\"${comment.author_name}\" class=\"h-8 w-8 rounded-full object-cover\">`
+                    : `<div class=\"h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center justify-center text-xs font-semibold\">${comment.initials || '?'}</div>`}
+                    <div>
+                        <div class="font-medium text-gray-900 dark:text-white">${comment.author_name}</div>
+                        ${comment.author_email ? `<div class=\"text-xs text-gray-500 dark:text-gray-400\">${comment.author_email}</div>` : ''}
+                    </div>
                 </div>
                 <span class="text-sm text-gray-500 dark:text-gray-400">${new Date(comment.created_at).toLocaleDateString()}</span>
             </div>
             <p class="text-gray-700 dark:text-gray-300 whitespace-pre-line">${comment.content}</p>
+            <div class="mt-3 flex items-center justify-between text-sm">
+                <div class="flex items-center space-x-3">
+                    <button class="like-button inline-flex items-center space-x-1 ${comment.liked_by_user ? 'text-red-500' : 'text-gray-500'}" data-like-id="${comment.id}" aria-label="Like comment">
+                        <svg class="h-4 w-4 ${comment.liked_by_user ? 'fill-red-500 stroke-red-500' : 'fill-transparent stroke-gray-400'}" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s-6.2-4.35-9.33-7.5C.5 11.27.5 7.6 3.17 5.5 5.5 3.7 8.7 4.2 12 7c3.3-2.8 6.5-3.3 8.83-1.5 2.67 2.1 2.67 5.77.5 8-3.13 3.15-9.33 7.5-9.33 7.5z" />
+                        </svg>
+                        <span class="like-count">${comment.like_count || 0}</span>
+                    </button>
+                    <button class="flag-button inline-flex items-center ${comment.pending_flag ? 'text-amber-500' : 'text-gray-500 hover:text-primary-600'}" data-flag-id="${comment.id}" aria-label="Flag comment">
+                        <svg class="h-4 w-4 stroke-current ${comment.pending_flag ? 'fill-amber-500' : 'fill-transparent'}" viewBox="0 0 24 24" fill="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M5 3v18" />
+                            <path d="M5 4h9l-1 4h6l-1 4H5" />
+                        </svg>
+                        <span class="sr-only">Flag</span>
+                    </button>
+                </div>
+                ${!isVerified && canInteract ? '<span class="text-xs text-gray-500">Verify email to interact</span>' : ''}
+            </div>
         </div>
     `).join('');
+
+    attachCommentActions();
+}
+
+function attachCommentActions() {
+    document.querySelectorAll('.like-button').forEach(button => {
+        button.addEventListener('click', async () => {
+            if (!canInteract) {
+                alert('Sign in to like comments.');
+                return;
+            }
+            if (!isVerified) {
+                alert('Please verify your email to like comments.');
+                return;
+            }
+            const commentID = button.getAttribute('data-like-id');
+            const response = await fetch(`/comments/${commentID}/like`, { method: 'POST' });
+            if (response.ok) {
+                loadComments();
+            } else {
+                alert('Unable to like comment.');
+            }
+        });
+    });
+
+    document.querySelectorAll('.flag-button').forEach(button => {
+        button.addEventListener('click', async () => {
+            if (!canInteract) {
+                alert('Sign in to flag comments.');
+                return;
+            }
+            if (!isVerified) {
+                alert('Please verify your email to flag comments.');
+                return;
+            }
+            const commentID = button.getAttribute('data-flag-id');
+            openFlagModal(commentID);
+        });
+    });
+}
+
+function initFlagModal() {
+    const flagCloseButton = document.getElementById('flag-modal-close');
+    if (flagCloseButton) {
+        flagCloseButton.addEventListener('click', closeFlagModal);
+    }
+    const flagCancelButton = document.getElementById('flag-modal-cancel');
+    if (flagCancelButton) {
+        flagCancelButton.addEventListener('click', closeFlagModal);
+    }
+    document.querySelectorAll('input[name="flag_reason"]').forEach(input => {
+        input.addEventListener('change', onFlagReasonChange);
+    });
+
+    const flagForm = document.getElementById('flag-form');
+    if (flagForm) {
+        flagForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const selected = document.querySelector('input[name="flag_reason"]:checked');
+            if (!selected || !activeFlagCommentId) {
+                alert('Please select a reason.');
+                return;
+            }
+            const details = document.getElementById('flag-details').value.trim();
+            const response = await fetch(`/comments/${activeFlagCommentId}/flag`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ reason: selected.value, details })
+            });
+            if (response.ok) {
+                alert('Comment flagged for review.');
+                closeFlagModal();
+                loadComments();
+            } else {
+                alert('Unable to flag comment.');
+            }
+        });
+    }
 }
 
 // Handle comment form submission
-document.getElementById('comment-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
+const commentForm = document.getElementById('comment-form');
+if (commentForm) {
+    commentForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-    const formData = new FormData(e.target);
-    const data = {
-        author_name: formData.get('author_name'),
-        author_email: formData.get('author_email'),
-        content: formData.get('content')
-    };
+        const formData = new FormData(e.target);
+        const data = {
+            content: formData.get('content')
+        };
 
-    try {
-        const response = await fetch(`/layoffs/{{.Layoff.ID}}/comments`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams(data)
-        });
+        try {
+            const response = await fetch(`/layoffs/{{.Layoff.ID}}/comments`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams(data)
+            });
 
-        if (response.ok) {
-            e.target.reset();
-            loadComments(); // Reload comments
-        } else {
+            if (response.ok) {
+                e.target.reset();
+                loadComments();
+            } else {
+                alert('Error posting comment. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error posting comment:', error);
             alert('Error posting comment. Please try again.');
         }
-    } catch (error) {
-        console.error('Error posting comment:', error);
-        alert('Error posting comment. Please try again.');
-    }
-});
+    });
+}
 
 // Load comments on page load
-document.addEventListener('DOMContentLoaded', loadComments);
+document.addEventListener('DOMContentLoaded', () => {
+    initFlagModal();
+    loadComments();
+});
 </script>
+
+<div id="flag-modal" class="fixed inset-0 z-50 hidden bg-black/40">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-md border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Flag comment</h3>
+                <button id="flag-modal-close" class="text-gray-500 hover:text-gray-700 dark:text-gray-300">✕</button>
+            </div>
+            <form id="flag-form" class="px-6 py-4 space-y-4">
+                <div class="space-y-2">
+                    <label class="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
+                        <input type="radio" name="flag_reason" value="Spam" class="text-primary-600">
+                        <span>Spam</span>
+                    </label>
+                    <label class="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
+                        <input type="radio" name="flag_reason" value="Harassment" class="text-primary-600">
+                        <span>Harassment</span>
+                    </label>
+                    <label class="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
+                        <input type="radio" name="flag_reason" value="Hate speech" class="text-primary-600">
+                        <span>Hate speech</span>
+                    </label>
+                    <label class="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
+                        <input type="radio" name="flag_reason" value="Misinformation" class="text-primary-600">
+                        <span>Misinformation</span>
+                    </label>
+                    <label class="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
+                        <input type="radio" name="flag_reason" value="Off-topic" class="text-primary-600">
+                        <span>Off-topic</span>
+                    </label>
+                    <label class="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
+                        <input type="radio" name="flag_reason" value="Other" class="text-primary-600">
+                        <span>Other</span>
+                    </label>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Details (required for Other)</label>
+                    <textarea id="flag-details" rows="3" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white" disabled></textarea>
+                </div>
+                <div class="flex justify-end space-x-2">
+                    <button type="button" id="flag-modal-cancel" class="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm bg-primary-600 hover:bg-primary-700 text-white rounded-md">Submit flag</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
     <!-- Company Header -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 mb-8">
