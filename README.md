@@ -17,7 +17,12 @@ A web application for tracking workforce reductions across industries using data
 - **Admin Review**: Approve pending layoffs and review flagged comments
 - **Homepage Highlights**: Most active companies by recent comment activity
 - **CSV Export + API**: Export and REST endpoints for stats and layoffs
+
 - **Notifications**: Email alerts for imports and issues
+
+## Deployment
+
+See [DEPLOY.md](DEPLOY.md) for deployment and rollback procedures.
 
 ## Data Sources
 

@@ -39,6 +39,7 @@ For ruleset validation, use a doc-only change on a dev branch.
 - **Only after local verification and explicit approval**
 - Merge dev → `staging` and wait for CI/CD checks to pass
 - Merge `staging` → `main` only when tests pass and review is complete
+ - PR bodies should include `Closes #<issue>` for related work
 
 #### **4. Production Deployment**
 - Run `./deploy-local.sh` from main branch
@@ -129,9 +130,15 @@ go build -o layoff-tracker .
    Note: do not use `/tmp` for production databases. `/tmp` can be cleaned on reboot.
 
 3. **Execute Deployment:**
-   ```bash
-   ./deploy-local.sh
-   ```
+    ```bash
+    ./deploy-local.sh
+    ```
+
+4. **Automated release helper (optional):**
+    ```bash
+    ./scripts/release.sh --issues 88,89 --tag v0.1.1
+    ```
+    This waits for CI, merges `staging` → `main`, deploys, tags the release, and closes issues.
 
 4. **What Gets Deployed:**
    - **Binary:** `layoff-tracker` (Go executable)
