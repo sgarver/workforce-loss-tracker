@@ -126,7 +126,7 @@ For all changes (not just Go files), follow this Software Development Lifecycle:
 
 **Single-approval release**
 - After local verification, a single approval can trigger `scripts/release.sh`
-- The script pushes dev → `staging` → `main`, runs CI gates, deploys, tags, and closes issues
+- The script pushes dev → `staging`, opens a `staging` → `main` PR, runs CI gates, deploys, tags, and closes issues
 
 ### 4. Rollback (If Needed)
 - If production issues arise, use documented rollback steps in `DEPLOY.md`

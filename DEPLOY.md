@@ -42,7 +42,8 @@ For ruleset validation, use a doc-only change on a dev branch.
 
 **No direct main changes**
 - All changes must flow dev → `staging` → `main`
-- Direct pushes to `staging` and `main` are allowed only via `scripts/release.sh`
+- Direct pushes to `staging` are allowed only via `scripts/release.sh`
+- `main` is updated via an automated PR created by `scripts/release.sh`
 
 #### **4. Production Deployment**
 - Run `./deploy-local.sh` from main branch
@@ -145,7 +146,7 @@ go build -o layoff-tracker .
     ```bash
     ./scripts/release.sh --issues 112 --tag v0.1.1 --source-branch feature/release-docs
     ```
-    This pushes dev → `staging`, waits for CI, fast‑forwards `staging` → `main`, deploys, tags the release, and closes issues.
+    This pushes dev → `staging`, waits for CI, creates a `staging` → `main` PR, merges it after checks, deploys, tags the release, and closes issues.
 
 4. **What Gets Deployed:**
    - **Binary:** `layoff-tracker` (Go executable)
