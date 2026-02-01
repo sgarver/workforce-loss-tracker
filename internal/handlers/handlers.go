@@ -75,6 +75,46 @@ func isDevMode() bool {
 	return strings.Contains(baseURL, "localhost") || strings.Contains(baseURL, "127.0.0.1")
 }
 
+func initialsFromName(name string) string {
+	parts := strings.Fields(strings.TrimSpace(name))
+	if len(parts) == 0 {
+		return "?"
+	}
+	initials := strings.ToUpper(string(parts[0][0]))
+	if len(parts) > 1 {
+		initials += strings.ToUpper(string(parts[1][0]))
+	}
+	return initials
+}
+
+func truncateText(value string, limit int) string {
+	value = strings.TrimSpace(value)
+	if limit <= 0 || len(value) <= limit {
+		return value
+	}
+	return value[:limit] + "..."
+}
+
+func timeAgo(value time.Time) string {
+	if value.IsZero() {
+		return ""
+	}
+	seconds := time.Since(value)
+	if seconds < time.Minute {
+		return "now"
+	}
+	if seconds < time.Hour {
+		return fmt.Sprintf("%dm", int(seconds.Minutes()))
+	}
+	if seconds < 24*time.Hour {
+		return fmt.Sprintf("%dh", int(seconds.Hours()))
+	}
+	if value.Year() == time.Now().Year() {
+		return value.Format("Jan 2")
+	}
+	return value.Format("Jan 2, 2006")
+}
+
 // getIndustryColor returns a unique color scheme for industry badges
 func getIndustryColor(industry string) (bgClass, textClass, hoverClass string) {
 	// Comprehensive color mapping for major industries - vibrant primary colors
@@ -559,11 +599,54 @@ func (h *Handler) AdminDashboard(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
+	flaggedComments, err := h.layoffService.GetFlaggedComments()
+	if err != nil {
+		log.Printf("Error getting flagged comments: %v", err)
+		flaggedComments = []*models.CommentFlag{}
+	}
+
 	log.Printf("Found %d pending layoffs", len(pending))
 
 	return h.renderWithLayout(c, "admin.html", "Workforce Loss Tracker - Admin", "", map[string]interface{}{
-		"PendingLayoffs": pending,
+		"PendingLayoffs":  pending,
+		"FlaggedComments": flaggedComments,
 	})
+}
+
+func (h *Handler) ResolveCommentFlag(c echo.Context) error {
+	user := h.getCurrentUser(c)
+	if user == nil || !user.IsAdmin {
+		return c.JSON(http.StatusForbidden, map[string]string{"error": "Access denied"})
+	}
+
+	flagID, err := strconv.Atoi(c.FormValue("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid flag ID"})
+	}
+
+	if err := h.layoffService.ResolveCommentFlag(flagID); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.Redirect(http.StatusSeeOther, "/admin")
+}
+
+func (h *Handler) DeleteFlaggedComment(c echo.Context) error {
+	user := h.getCurrentUser(c)
+	if user == nil || !user.IsAdmin {
+		return c.JSON(http.StatusForbidden, map[string]string{"error": "Access denied"})
+	}
+
+	commentID, err := strconv.Atoi(c.FormValue("comment_id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid comment ID"})
+	}
+
+	if err := h.layoffService.DeleteComment(commentID); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.Redirect(http.StatusSeeOther, "/admin")
 }
 
 func (h *Handler) ApproveLayoff(c echo.Context) error {
@@ -636,6 +719,18 @@ func (h *Handler) Dashboard(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
+	topCompanies, err := h.layoffService.GetTopActiveCompanies(5)
+	if err != nil {
+		log.Printf("Error loading top companies: %v", err)
+		topCompanies = []*models.CompanyCommentSummary{}
+	}
+	for _, entry := range topCompanies {
+		if entry.TopComment != nil {
+			entry.TopComment.Initials = initialsFromName(entry.TopComment.AuthorName)
+			entry.TopComment.Content = truncateText(entry.TopComment.Content, 140)
+		}
+	}
+
 	// Format numbers for display (fallback if service didn't set them)
 	if stats.TotalLayoffsFormatted == "" {
 		formatNumber := func(n int) string {
@@ -686,6 +781,7 @@ func (h *Handler) Dashboard(c echo.Context) error {
 		"CurrentQuarter":    fmt.Sprintf("Q%d %d (%s)", quarter, year, quarterMonths),
 		"LastImportTime":    lastImportTime,
 		"SponsoredListings": []interface{}{}, // Empty for now
+		"TopCompanies":      topCompanies,
 	})
 
 	layoutData := map[string]interface{}{
@@ -912,12 +1008,123 @@ func (h *Handler) GetComments(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid layoff ID"})
 	}
 
-	comments, err := h.layoffService.GetComments(layoffID)
+	currentUser := h.getCurrentUser(c)
+	userID := 0
+	if currentUser != nil {
+		userID = currentUser.ID
+	}
+
+	comments, err := h.layoffService.GetComments(layoffID, userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	for _, comment := range comments {
+		comment.Initials = initialsFromName(comment.AuthorName)
+	}
+
+	return c.JSON(http.StatusOK, comments)
+}
+
+func (h *Handler) LikeComment(c echo.Context) error {
+	commentID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid comment ID"})
+	}
+
+	user := h.getCurrentUser(c)
+	if user == nil {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Authentication required"})
+	}
+	if !user.EmailVerified {
+		return c.JSON(http.StatusForbidden, map[string]string{"error": "Email verification required"})
+	}
+
+	liked, err := h.layoffService.ToggleCommentLike(commentID, user.ID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, comments)
+	return c.JSON(http.StatusOK, map[string]interface{}{"liked": liked})
+}
+
+func (h *Handler) FlagComment(c echo.Context) error {
+	commentID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid comment ID"})
+	}
+
+	user := h.getCurrentUser(c)
+	if user == nil {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Authentication required"})
+	}
+	if !user.EmailVerified {
+		return c.JSON(http.StatusForbidden, map[string]string{"error": "Email verification required"})
+	}
+
+	reason := strings.TrimSpace(c.FormValue("reason"))
+	details := strings.TrimSpace(c.FormValue("details"))
+	if reason == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Reason is required"})
+	}
+
+	allowed := map[string]bool{
+		"Spam":           true,
+		"Harassment":     true,
+		"Hate speech":    true,
+		"Misinformation": true,
+		"Off-topic":      true,
+		"Other":          true,
+	}
+	if !allowed[reason] {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid reason"})
+	}
+	if reason == "Other" && details == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Details required for Other"})
+	}
+
+	flag := &models.CommentFlag{
+		CommentID: commentID,
+		UserID:    user.ID,
+		Reason:    reason,
+		Details:   details,
+	}
+
+	if err := h.layoffService.CreateCommentFlag(flag); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	commentSummary, err := h.layoffService.GetCommentSummary(commentID)
+	if err != nil {
+		log.Printf("Error loading comment summary: %v", err)
+	}
+
+	admins, err := h.userService.GetAdminUsers()
+	if err != nil {
+		log.Printf("Error loading admin users for flags: %v", err)
+	} else {
+		linkTarget := commentID
+		companyName := ""
+		commentAuthor := user.Name
+		if commentSummary != nil {
+			linkTarget = commentSummary.LayoffID
+			companyName = commentSummary.LayoffCompany
+			if commentSummary.AuthorName != "" {
+				commentAuthor = commentSummary.AuthorName
+			}
+		}
+		commentLink := fmt.Sprintf("%s/layoffs/%d", strings.TrimRight(h.authMailer.BaseURL(), "/"), linkTarget)
+		for _, admin := range admins {
+			detailText := details
+			if detailText == "" {
+				detailText = "(none)"
+			}
+			if err := h.authMailer.SendFlaggedCommentEmail(admin.Email, commentAuthor, companyName, reason, detailText, commentLink); err != nil {
+				log.Printf("Error sending flag email to %s: %v", admin.Email, err)
+			}
+		}
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"status": "flagged"})
 }
 
 func (h *Handler) CreateComment(c echo.Context) error {
@@ -926,18 +1133,32 @@ func (h *Handler) CreateComment(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid layoff ID"})
 	}
 
-	authorName := c.FormValue("author_name")
-	content := c.FormValue("content")
-	authorEmail := c.FormValue("author_email")
+	user := h.getCurrentUser(c)
+	if user == nil {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Authentication required"})
+	}
+	if !user.EmailVerified {
+		return c.JSON(http.StatusForbidden, map[string]string{"error": "Email verification required"})
+	}
 
-	if authorName == "" || content == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Name and content are required"})
+	content := c.FormValue("content")
+	if content == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Content is required"})
+	}
+
+	authorName := strings.TrimSpace(user.Name)
+	if authorName == "" {
+		parts := strings.Split(user.Email, "@")
+		if len(parts) > 0 {
+			authorName = parts[0]
+		}
 	}
 
 	comment := &models.Comment{
 		LayoffID:    layoffID,
+		UserID:      user.ID,
 		AuthorName:  authorName,
-		AuthorEmail: authorEmail,
+		AuthorEmail: user.Email,
 		Content:     content,
 	}
 
