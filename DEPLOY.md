@@ -52,8 +52,12 @@ For ruleset validation, use a doc-only change on a dev branch.
 - Monitor error logs for 24 hours
 - Be ready to rollback if issues appear
 - Close or mark related GitHub issues as Done
+- Delete merged feature branches locally and on origin
 
 ### Local Testing Requirements
+
+**Documentation-only change exception**
+- If changes are limited to markdown files, you may skip build and test runs.
 
 #### **Must Verify Before Merging**
 - [ ] Dashboard loads without errors

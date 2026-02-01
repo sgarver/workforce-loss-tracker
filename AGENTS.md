@@ -17,6 +17,9 @@ Whenever changes are made to Go files in this project, follow this process:
    - Execute `go test ./...` to run all unit tests.
    - Ensure all tests pass before proceeding.
 
+**Documentation-only change exception**
+- If changes are limited to markdown files (e.g., `README.md`, `DEPLOY.md`, `AGENTS.md`), you may skip build and test runs.
+
 3. **Restart the Site**:
    - Stop any running instances: `pkill -f layoff-tracker`
    - Build and start the server: `./layoff-tracker &`
@@ -134,4 +137,4 @@ For all changes (not just Go files), follow this Software Development Lifecycle:
 
 ## Final Step
 
-- After completing changes, update the list time in `todo.md` to reflect the current timestamp.
+- After completing changes, delete merged feature branches locally and on origin.
