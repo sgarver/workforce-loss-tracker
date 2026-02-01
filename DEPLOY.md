@@ -12,10 +12,10 @@ Follow this process to ensure smooth deployments and catch issues before they re
 
 ### Process Overview
 ```
-1. Develop → 2. Test Locally → 3. Merge to Main → 4. Deploy → 5. Verify
-   ↓            ↓                     ↓               ↓            ↓
- staging    Local server         CI/CD checks   Production     Monitoring
- branch     (http://localhost)   passes         server         & alerts
+1. Develop → 2. Test Locally → 3. Merge to Staging → 4. Merge to Main → 5. Deploy → 6. Verify
+   ↓            ↓                        ↓                 ↓               ↓            ↓
+ staging    Local server            Staging CI        Main CI        Production     Monitoring
+ branch     (http://localhost)      passes            passes        server         & alerts
 ```
 
 ### Step-by-Step Workflow
@@ -35,23 +35,26 @@ For ruleset validation, use a doc-only change on a dev branch.
 - Check: No console errors, proper data display
 - Test: All user interactions work correctly
 
-#### **3. Merge to Main**
+#### **3. Merge to Staging**
 - **Only after local verification and explicit approval**
 - Merge dev → `staging` and wait for CI/CD checks to pass
-- Merge `staging` → `main` only when tests pass and review is complete
+
+#### **4. Merge to Main**
+- Merge `staging` → `main` only after `staging` checks pass
+- No PRs are created in this flow
 
 **No direct main changes**
 - All changes must flow dev → `staging` → `main`
 - Direct pushes to `staging` are allowed only via `scripts/release.sh`
-- `main` is updated via an automated PR created by `scripts/release.sh`
+- `main` is updated via a direct merge from `staging` after checks pass
 
-#### **4. Production Deployment**
+#### **5. Production Deployment**
 - Run `./deploy-local.sh` from main branch
 - Monitor deployment logs for issues
 - Verify health checks pass
 - Tag the release with the milestone version (e.g., `v0.8.0`) and publish release notes
 
-#### **5. Post-Deployment Verification**
+#### **6. Post-Deployment Verification**
 - Check production site loads correctly
 - Verify all features work as expected
 - Monitor error logs for 24 hours
@@ -101,7 +104,7 @@ go build -o layoff-tracker .
 - [ ] All changes committed to `staging` branch
 - [ ] `staging` and `main` branches are synchronized
 - [ ] CI/CD pipeline passes for `staging` branch
-- [ ] Manual review completed for `staging` → `main` merge
+- [ ] `staging` checks passed before `staging` → `main` merge
 
 ### Database Considerations
 - [ ] Schema migrations tested on staging
@@ -146,7 +149,7 @@ go build -o layoff-tracker .
     ```bash
     ./scripts/release.sh --issues 112 --tag v0.1.1 --source-branch feature/release-docs
     ```
-    This pushes dev → `staging`, waits for CI, creates a `staging` → `main` PR, merges it after checks, deploys, tags the release, and closes issues.
+    This pushes dev → `staging`, waits for CI, merges `staging` → `main` after checks, deploys, tags the release, and closes issues.
 
 4. **What Gets Deployed:**
    - **Binary:** `layoff-tracker` (Go executable)
@@ -225,10 +228,9 @@ sudo journalctl -u layoff-tracker -n 50
 ## Staging Deployment
 
 ### Process
-1. Push feature branch → create PR to `staging`
+1. Merge dev → `staging` after explicit approval
 2. Automated CI runs tests/security/build on `staging`
-3. Manual review of changes and CI results
-4. Merge `staging` → `main` for production deployment
+3. Merge `staging` → `main` only after `staging` checks pass
 
 ### Staging Environment
 - **URL:** https://staging.workforceloss.com (if configured)

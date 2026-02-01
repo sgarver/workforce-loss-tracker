@@ -31,10 +31,9 @@ Whenever changes are made to Go files in this project, follow this process:
    - **DO NOT PROCEED WITHOUT EXPLICIT USER APPROVAL**. Always wait for the user to explicitly say "commit" (or similar confirmation like "approved") before advancing to step 5. Do not infer approval from phrases like "please proceed" or "looks good"—require direct confirmation.
 
 5. **Commit to Git**:
-   - **ONLY AFTER USER SAYS "COMMIT" FOR ANY CHANGE**: Do not commit any changes (Go or otherwise) until the user explicitly says "commit" (or equivalent). This prevents premature commits.
-   - Commit the changes: `git add .` and `git commit -m "Description of changes"`
-   - Update the completed task in `todo.md` and update the timestamp.
-   - Ask the user about the next task.
+    - **ONLY AFTER USER SAYS "COMMIT" FOR ANY CHANGE**: Do not commit any changes (Go or otherwise) until the user explicitly says "commit" (or equivalent). This prevents premature commits.
+    - Commit the changes: `git add .` and `git commit -m "Description of changes"`
+    - Ask the user about the next task.
 
 ## Post-Change Checklist (For AI Responses)
 After making changes, include this checklist in responses to ensure protocol adherence. Only mark items as [x] if they are truly completed—leave pending items as [ ] and note their status clearly to avoid confusion.
@@ -60,14 +59,14 @@ Before any commit, always include this prompt:
 ```
 
 **2. Pre-Merge Confirmation**
-Before merging dev → `staging` or `staging` → `main`, always include this prompt:
+Before merging dev → `staging`, always include this prompt:
 ```
 **Ready to promote?** Please reply with "approve" to proceed, or provide feedback for changes.
 ```
 
 **3. Approval Order is Critical**
 - **NEVER commit before approval** - Wait for explicit "commit" confirmation
-- **NEVER merge between branches before approval** - Wait for explicit "approve" confirmation
+- **NEVER merge dev → staging before approval** - Wait for explicit "approve" confirmation
 - Show checklist and prompt FIRST
 - Commit or merge SECOND (only after approval received)
 - If user provides feedback instead of the approval keyword, address feedback and re-prompt
@@ -119,14 +118,14 @@ For all changes (not just Go files), follow this Software Development Lifecycle:
 ### 3. Production Deployment
 - **Only after staging passes**: Push/merge to `main` branch
 - CI runs again on main
-- Manual production deployment via GitHub Actions (admin only)
+- Manual production deployment via `./deploy-local.sh`
 - Verify production functionality
 - Close or mark related issues as Done in the project board
 - Tag the release with the milestone version (e.g., `v0.8.0`) and publish release notes
 
 **Single-approval release**
 - After local verification, a single approval can trigger `scripts/release.sh`
-- The script pushes dev → `staging`, opens a `staging` → `main` PR, runs CI gates, deploys, tags, and closes issues
+- The script pushes dev → `staging`, waits for CI gates, merges `staging` → `main`, deploys, tags, and closes issues
 
 ### 4. Rollback (If Needed)
 - If production issues arise, use documented rollback steps in `DEPLOY.md`
@@ -141,7 +140,7 @@ For all changes (not just Go files), follow this Software Development Lifecycle:
 
 **No direct main changes**
 - All changes must flow dev → `staging` → `main`
-- Do not open PRs from feature branches directly to `main`
+- No PRs in the release flow; merge `staging` → `main` directly only after `staging` checks pass
 
 ## Final Step
 

@@ -71,6 +71,13 @@ echo "Release starting for tag $tag"
 echo "Issues: $issues"
 echo "Source branch: $source_branch"
 
+echo "Ready to promote? Type 'approve' to merge $source_branch -> $staging_branch."
+read -r approval
+if [[ "$approval" != "approve" ]]; then
+  echo "Approval not granted. Aborting release."
+  exit 1
+fi
+
 git fetch origin
 git checkout "$staging_branch"
 git merge --ff-only "origin/$staging_branch" || true
@@ -82,16 +89,8 @@ scripts/wait-ci.sh "$staging_workflow" "$staging_branch" 1200
 git checkout "$main_branch"
 git merge --ff-only "origin/$main_branch" || true
 
-pr_url=$(gh pr list --base "$main_branch" --head "$staging_branch" --json url -q '.[0].url' || true)
-if [[ -z "$pr_url" ]]; then
-  pr_url=$(gh pr create --base "$main_branch" --head "$staging_branch" --title "Release $tag" --body "Closes #${issues//,/ #}")
-fi
-echo "Using PR: $pr_url"
-
-echo "Waiting for PR checks..."
-timeout 1200 bash -lc 'while true; do json=$(gh pr view "'$pr_url'" --json statusCheckRollup); statuses=$(echo "$json" | jq -r "[.statusCheckRollup[].status] | unique | join(\",\")"); conclusions=$(echo "$json" | jq -r "[.statusCheckRollup[].conclusion] | unique | join(\",\")"); echo "status=$statuses conclusion=$conclusions"; if echo "$statuses" | grep -q "IN_PROGRESS"; then sleep 20; continue; fi; if echo "$conclusions" | grep -qi "failure\|cancelled"; then exit 2; fi; exit 0; done'
-
-gh pr merge "$pr_url" --squash
+git merge --ff-only "origin/$staging_branch"
+git push origin "$main_branch"
 
 scripts/wait-ci.sh "$main_workflow" "$main_branch" 1200
 
