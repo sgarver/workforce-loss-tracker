@@ -3,6 +3,8 @@
 [![Staging CI](https://github.com/sgarver/workforce-loss-tracker/actions/workflows/staging-ci.yml/badge.svg?branch=staging)](https://github.com/sgarver/workforce-loss-tracker/actions/workflows/staging-ci.yml)
 [![CI](https://github.com/sgarver/workforce-loss-tracker/actions/workflows/production-deploy.yml/badge.svg?branch=main)](https://github.com/sgarver/workforce-loss-tracker/actions/workflows/production-deploy.yml)
 
+> **Alpha release (v0.x)**: This project is in active development and subject to change until the 1.0.0 release.
+
 A web application for tracking workforce reductions across industries using data from public WARN Act filings. Features include automated data import, web dashboard with trends, search and filters, user authentication, commenting with moderation, and admin review tools.
 
 ## Features
@@ -178,3 +180,8 @@ For production deployment, configure email notifications for import status updat
 ## Deployment
 
 See [DEPLOY.md](DEPLOY.md) for deployment and rollback procedures.
+
+## Roadmap
+
+Milestones and ongoing work are tracked in the GitHub Project:
+https://github.com/users/sgarver/projects/1

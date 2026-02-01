@@ -43,7 +43,8 @@ After making changes, include this checklist in responses to ensure protocol adh
 - [ ] **Manual Verification Prompt**: Asked user to verify before committing.
 - [ ] **User Approval**: Confirmed user explicitly said "commit" (or equivalent) before commit.
 - [ ] **Commit Done**: Changes committed with descriptive message.
-- [ ] **Todo Updated**: `todo.md` updated if task completed.
+- [ ] **Issue Status Updated**: Related GitHub issues updated or closed.
+- [ ] **Issues Closed**: Related GitHub issues closed or moved to Done.
 
 ## Explicit Approval Protocol
 
@@ -82,8 +83,9 @@ Never assume approval for any change type - always require explicit "commit" con
 
 ## Task Management
 
-- All current and ongoing tasks are stored in `todo.md`.
-- Update `todo.md` with new tasks, mark completed tasks, and update timestamps as needed.
+- All current and ongoing tasks are tracked in the GitHub Project:
+  https://github.com/users/sgarver/projects/1
+- Use GitHub Issues as the source of truth for roadmap items.
 
 ## Branching Policy (Milestone Work)
 
@@ -116,6 +118,8 @@ For all changes (not just Go files), follow this Software Development Lifecycle:
 - CI runs again on main
 - Manual production deployment via GitHub Actions (admin only)
 - Verify production functionality
+- Close or mark related issues as Done in the project board
+- Tag the release with the milestone version (e.g., `v0.8.0`) and publish release notes
 
 ### 4. Rollback (If Needed)
 - If production issues arise, use documented rollback steps in `DEPLOY.md`
