@@ -39,11 +39,10 @@ For ruleset validation, use a doc-only change on a dev branch.
 - **Only after local verification and explicit approval**
 - Merge dev → `staging` and wait for CI/CD checks to pass
 - Merge `staging` → `main` only when tests pass and review is complete
- - PR bodies should include `Closes #<issue>` for related work
 
 **No direct main changes**
 - All changes must flow dev → `staging` → `main`
-- Do not open PRs from feature branches directly to `main`
+- Direct pushes to `staging` and `main` are allowed only via `scripts/release.sh`
 
 #### **4. Production Deployment**
 - Run `./deploy-local.sh` from main branch
@@ -144,9 +143,9 @@ go build -o layoff-tracker .
 
 4. **Automated release helper (optional):**
     ```bash
-    ./scripts/release.sh --issues 88,89 --tag v0.1.1
+    ./scripts/release.sh --issues 112 --tag v0.1.1 --source-branch feature/release-docs
     ```
-    This waits for CI, merges `staging` → `main`, deploys, tags the release, and closes issues.
+    This pushes dev → `staging`, waits for CI, fast‑forwards `staging` → `main`, deploys, tags the release, and closes issues.
 
 4. **What Gets Deployed:**
    - **Binary:** `layoff-tracker` (Go executable)
